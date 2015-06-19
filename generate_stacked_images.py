@@ -33,22 +33,22 @@ import tifffile as tff
 
 # --- Parameters --- #
 
-n_time = 1 # number of time frames
+n_time = 121 # number of time frames
 n_z = 41 # number of z-components per time frame
 
 # Cutting parameters, used only if cut = True
 cut = True
-cut_x = 1016 
-cut_y = 982
-pos_x = 8
-pos_y = 38
+cut_x = 953 
+cut_y = 953
+pos_x = 30
+pos_y = 30
 
 # Type of the file
-sType = 'int16'
+sType = 'uint16'
 
-# In & out file path
-path = 'D:\data\XY-point-5\slices\T?????\T?????C01Z@@@.tif'
-path_out = 'D:\data\XY-point-5\slices\T?????\T?????.tif'
+# In - out file path
+path = "C:\\Users\\olimpio\\Documents\\data\\XY-point-5\\slices\\T?????\\T?????C01Z@@@.tif"
+path_out = "C:\\Users\\olimpio\\Documents\\data\\XY-point-5\\slices\\T?????\\T?????.tif"
 
 # --- Main program --- #
 
@@ -76,8 +76,11 @@ for t in range(n_time):
             im_out[z, :, :] = image
     
     tags = []
+    # Set min and max as in the original file
     tags.append((280, 'H', 1, 0, False))
     tags.append((281, 'H', 1, 4095, False))
+    # Change sample format to u-int for Amat et. al software
+    # tags.append((339, 'H', 1, 1, False)) 
 
     with tff.TiffWriter(path_out_corr) as tif:
         tif.save(im_out, extratags = tags)
