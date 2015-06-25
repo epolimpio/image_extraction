@@ -23,7 +23,7 @@ anisotropyZ=5.0
 backgroundThreshold=200
 
 #Tau level for generating an initial set of supervoxels from the hierarchical segmentation of watershed and persistence-based clustering
-persistanceSegmentationTau=14
+persistanceSegmentationTau=20
 
 
 #================ ADVANCED PARAMETERS ================
