@@ -17,41 +17,52 @@ def readStackImage(filename, sType = 'uint16'):
     
     return image, size
 
-def calculate_max_projection(theta = 0, phi = 0):
+def rotateArbitraryAxis(vec, axis_vec, angle):
+    # Rotate an arbitrary vector around an arbitrary axis
 
-    # Define the view matrix
-    # We first rotate around y to get the theta rotation (for phi=0) - Ry
-    # Then we rotate around the old z-axis (now with components in x and z) by phi - Rxz
-    Ry = np.array([[cos(theta), 0, sin(theta), 0],
-                [0, 1, 0, 0],
-                [-sin(theta), 0, cos(theta), 0],
-                [0, 0, 0, 1]])
-    Rxz = np.array([[(sin(theta))**2 + cos(phi)*(cos(theta))**2, -cos(theta)*sin(phi), -sin(theta)*cos(theta)*(1-cos(phi)), 0],
-                [cos(theta)*sin(phi), cos(phi), sin(theta)*sin(phi), 0],
-                [-sin(theta)*cos(theta)*(1-cos(phi)), -sin(theta)*sin(phi), (cos(theta))**2 + cos(phi)*(sin(theta))**2, 0],
-                [0, 0, 0, 1]])
-    return np.dot(Ry, Rxz)
+    L = np.linalg.norm(axis_vec)
+    axis_vec = axis_vec/L
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-vec = np.array([1,0,0,0])
-dphi = pi/3
-dtheta = pi/5
+    cos_theta = cos(angle)
+    sin_theta = sin(angle)
+    u = axis_vec[0]
+    v = axis_vec[1]
+    w = axis_vec[2]
 
-r = np.linalg.norm(vec)
-theta = acos(vec[2]/r);
-phi = acos(vec[0]/(r*sin(theta)))
+    R = np.array([[(u**2)*(1-cos_theta)+cos_theta, u*v*(1-cos_theta)-w*sin_theta, u*w*(1-cos_theta)+v*sin_theta],
+                [u*v*(1-cos_theta)+w*sin_theta, (v**2)*(1-cos_theta)+cos_theta, v*w*(1-cos_theta)-u*sin_theta],
+                [u*w*(1-cos_theta)-v*sin_theta, v*w*(1-cos_theta)+u*sin_theta, (w**2)*(1-cos_theta)+cos_theta]])
 
-theta = theta + dtheta
-phi = phi + dphi
+    return R.dot(vec)
 
-print(r*sin(theta)*cos(phi), r*sin(theta)*sin(phi), r*cos(theta))
-out = calculate_max_projection(dtheta, dphi).dot(vec)
-print(out)
-# xs = out[0]
-# ys = out[1]
-# zs = out[2]
-# ax.scatter(xs, ys, zs)
-# ax.scatter(0, 0, 1)
-# plt.show()
+def rotateSphericalAngles(vec, theta = 0, phi = 0):
+
+    r = np.linalg.norm(vec)
+    if r == 0:
+        return vec
+    vec = vec/r
+    if np.array_equal(np.round(vec).astype('int'), np.array([0,0,1]).astype('int')):
+        vec_out = np.array([sin(theta)*cos(phi), 
+                sin(theta)*cos(theta), cos(theta)])
+    else:
+        vec_out = np.array([1,1,1])
+
+    return vec_out
+
+def viewMatrix(dtheta = 0, dphi = 0):
+
+    u = sphericalRotation(np.array([1,0,0]), dtheta, dphi)
+    v = sphericalRotation(np.array([0,1,0]), dtheta, dphi)
+    w = sphericalRotation(np.array([0,0,1]), dtheta, dphi)
+
+    view = np.zeros((4, 4))
+    view[3,3] = 1
+    view[0,0:3] = u
+    view[1,0:3] = v
+    view[2,0:3] = w
+
+    return view
+
+print(rotateSphericalAngles([0,1,0]))
+
 
