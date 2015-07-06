@@ -1,0 +1,16 @@
+# number of time frames
+n_time = 129
+
+# number of z-components per time frame
+n_z = 29
+
+# Cutting parameters, used only if cut = True
+cut = True
+cut_x = 600 
+cut_y = 500
+pos_x = 300
+pos_y = 200
+
+# In - out file path
+path_in = "D:\\data\\25 tif\\T?????C01Z@@@.tif"
+path_out = "D:\\data\\25 tif\\T?????C01.tif"

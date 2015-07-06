@@ -22,6 +22,9 @@ under small changes
 This program needs tiifile.py and its dependencies. See:
 http://www.lfd.uci.edu/~gohlke/
 
+The inputs are read from the a configuration file which path
+is given when the program is called.
+
 """
 
 # --- Declarations --- #
@@ -30,57 +33,71 @@ import numpy as np
 import matplotlib.pyplot as plt
 import re
 import tifffile as tff
+from utils import readConfigFile, corrTIFPath
 
-# --- Parameters --- #
+def main(*args):
+    # Type of the file
+    sType = 'uint16'
 
-n_time = 121 # number of time frames
-n_z = 41 # number of z-components per time frame
+    config_path = 'config_generate_stacked_images.conf'
+    if len(args) >= 1:
+        config_path = str(args[0]).strip('"')
+    else:
+        print('ERROR: What is the configuration file?')
+        return False
 
-# Cutting parameters, used only if cut = True
-cut = True
-cut_x = 953 
-cut_y = 953
-pos_x = 30
-pos_y = 30
+    # Read parameters in config file
+    out = readConfigFile(config_path)
 
-# Type of the file
-sType = 'uint16'
+    cut = out['cut'].lower() == 'true'
+    cut_x = int(out['cut_x'])
+    pos_x = int(out['pos_x'])
+    cut_y = int(out['cut_y'])
+    pos_y = int(out['pos_y'])
+    n_time = int(out['n_time'])
+    n_z = int(out['n_z'])
 
-# In - out file path
-path = "C:\\Users\\olimpio\\Documents\\data\\XY-point-5\\slices\\T?????\\T?????C01Z@@@.tif"
-path_out = "C:\\Users\\olimpio\\Documents\\data\\XY-point-5\\slices\\T?????\\T?????.tif"
+    path_in = str(out['path_in'].strip('"'))
+    print(path_in)
+    path_out = str(out['path_out'].strip('"'))
+    print(path_out)
 
-# --- Main program --- #
+    # --- Main program --- #
 
-for t in range(n_time):
-    t_str = '{0:05d}'.format(t+1)
-    path_corr_int = re.sub('(\?+)', t_str, path)
-    path_out_corr = re.sub('(\?+)', t_str, path_out)
-    for z in range(n_z):
-        z_str = '{0:03d}'.format(z+1)
-        path_corr = re.sub('(\@+)',z_str,path_corr_int)
-        with tff.TiffFile(path_corr) as tif:
-            image = tif.asarray()
-            size = image.shape
-            if z == 0:
-                if cut:
-                    im_out = np.zeros((n_z, cut_x, cut_y)).astype(sType)
-                else:
-                    im_out = np.zeros((n_z, size[0], size[1])).astype(sType)
-            for page in tif:
-                image = page.asarray().astype(sType)
+    for t in range(n_time):
+        t_str = '{0:05d}'.format(t+1)
+        print("Time -> " + t_str)
+        path_in_corr = corrTIFPath(path_in, '?', t+1)
+        path_out_corr = corrTIFPath(path_out, '?', t+1)
+        for z in range(n_z):
+            z_str = '{0:03d}'.format(z+1)
+            path_corr = corrTIFPath(path_in_corr, '@', z+1)
+            with tff.TiffFile(path_corr) as tif:
+                image = tif.asarray()
+                size = image.shape
+                if z == 0:
+                    if cut:
+                        im_out = np.zeros((n_z, cut_x, cut_y)).astype(sType)
+                    else:
+                        im_out = np.zeros((n_z, size[0], size[1])).astype(sType)
+                for page in tif:
+                    image = page.asarray().astype(sType)
+            
+            if cut:
+                im_out[z, :, :] = image[pos_x:(pos_x+cut_x), pos_y:(pos_y+cut_y)]
+            else:
+                im_out[z, :, :] = image
         
-        if cut:
-            im_out[z, :, :] = image[pos_x:(pos_x+cut_x), pos_y:(pos_y+cut_y)]
-        else:
-            im_out[z, :, :] = image
-    
-    tags = []
-    # Set min and max as in the original file
-    tags.append((280, 'H', 1, 0, False))
-    tags.append((281, 'H', 1, 4095, False))
-    # Change sample format to u-int for Amat et. al software
-    # tags.append((339, 'H', 1, 1, False)) 
+        tags = []
+        # Set min and max as in the original file
+        tags.append((280, 'H', 1, 0, False))
+        tags.append((281, 'H', 1, 4095, False))
+        # Change sample format to u-int for Amat et. al software
+        # tags.append((339, 'H', 1, 1, False)) 
 
-    with tff.TiffWriter(path_out_corr) as tif:
-        tif.save(im_out, extratags = tags)
+        with tff.TiffWriter(path_out_corr) as tif:
+            tif.save(im_out, extratags = tags)
+
+if __name__ == "__main__":
+    import sys
+    main(*sys.argv[1:])
