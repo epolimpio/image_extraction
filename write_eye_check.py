@@ -17,58 +17,7 @@ import tifffile as tff
 import lxml.etree as etree
 import struct
 import os
-from utils import ensure_dir, readTIFImage, corrTIFPath
-
-def readSuperVoxelFromFile(filename, t=0, imageDim = 3, symbol = '?'):
-# Similar to functions the authors built in Matlab
-    path_corr = corrTIFPath(filename, symbol, t+1)
-    fid = open(path_corr, 'rb')
-    numSv, = struct.unpack('i', fid.read(4))
-    TM = np.zeros(numSv)
-    dataSizeInBytes = np.zeros(numSv)
-    dataDims = np.zeros((imageDim, numSv))
-    pixIDlist = [np.zeros(1),]*numSv
-    for k in range(numSv):
-        TM[k], = struct.unpack('i', fid.read(4))
-        dataSizeInBytes[k], = struct.unpack('Q', fid.read(8))
-        dataDims[:,k] = np.asarray(struct.unpack('Q'*imageDim, fid.read(8*imageDim)))
-        ll, = struct.unpack('I', fid.read(4))
-        if ll>0:
-            pixIDlist[k] = np.asarray(struct.unpack('Q'*ll, fid.read(8*ll)))
-        else:
-            pixIDlist[k] = np.asarray([])
-
-    return dataDims, pixIDlist
-
-def readXML(filename, n_time, symbol = '?'):
-
-    # Number of parameters to be read. Today is 6:
-    # 0,1,2 -> point coordinates
-    # 3 -> SuperVoxel ID
-    # 4 -> ID
-    # 5 -> Parent
-    n_param_read = 6
-    pos = [[[],]*n_param_read,]*n_time 
-    for t in range(n_time):
-        xml_path_corr = corrTIFPath(filename, symbol, t+1)
-        tree = etree.parse(xml_path_corr)
-        root = tree.getroot()
-        all_points = root.xpath('GaussianMixtureModel')
-        x = [0.0,]*len(all_points)
-        y = [0.0,]*len(all_points)
-        z = [0.0,]*len(all_points)
-        svID = [[],]*len(all_points)
-        ID = [0,]*len(all_points)
-        parent = [0,]*len(all_points)
-        i = 0
-        for point in all_points:
-            [x[i], y[i], z[i]] = [float(x) for x in point.xpath('attribute::m')[0].split()]
-            svID[i] = [int(x) for x in point.xpath('attribute::svIdx')[0].split()]
-            ID[i] = [int(x) for x in point.xpath('attribute::id')[0].split()]
-            parent[i] = [int(x) for x in point.xpath('attribute::parent')[0].split()]
-            i += 1
-        pos[t] = [x,y,z,svID,ID,parent]
-    return pos
+from track_utils import *
 
 def calcPixelsAddress(svIDList, pixIDList, dimX, dimY):
 
@@ -172,7 +121,7 @@ def main(*args):
     image_path = image_path.split('=')[1][:-1] + '.tif'
 
     # read positions from XML
-    pos = readXML(xml_path, n_time)
+    pos = readXMLAmat(xml_path, n_time)
 
     # Run main file
     writeEyeCheck(image_out_path, image_path, binary_path, pos, 1)

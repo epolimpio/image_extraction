@@ -28,12 +28,11 @@ is given when the program is called.
 """
 
 # --- Declarations --- #
-
 import numpy as np
 import matplotlib.pyplot as plt
 import re
 import tifffile as tff
-from utils import readConfigFile, corrTIFPath
+from track_utils import readConfigFile, corrTIFPath
 
 def main(*args):
     # Type of the file
@@ -77,14 +76,14 @@ def main(*args):
                 size = image.shape
                 if z == 0:
                     if cut:
-                        im_out = np.zeros((n_z, cut_x, cut_y)).astype(sType)
+                        im_out = np.zeros((n_z, cut_y, cut_x)).astype(sType)
                     else:
                         im_out = np.zeros((n_z, size[0], size[1])).astype(sType)
                 for page in tif:
                     image = page.asarray().astype(sType)
             
             if cut:
-                im_out[z, :, :] = image[pos_x:(pos_x+cut_x), pos_y:(pos_y+cut_y)]
+                im_out[z, :, :] = image[pos_y:(pos_y+cut_y), pos_x:(pos_x+cut_x)]
             else:
                 im_out[z, :, :] = image
         
