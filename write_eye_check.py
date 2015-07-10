@@ -19,44 +19,27 @@ import struct
 import os
 from track_utils import *
 
-def calcPixelsAddress(svIDList, pixIDList, dimX, dimY):
+def writeEyeCheck(image_out_path, frame_ini, frame_end, track):
 
-    ini = True
-    for svIDs in svIDList:
-        for svID in svIDs:
-            pixIDs = pixIDList[svID]
-            pixs = np.zeros((pixIDs.shape[0], 3))
-            szFrame = dimX*dimY
-            pixs[:,2] = pixIDs // szFrame
-            pixs[:,1] = (pixIDs % szFrame) // dimX
-            pixs[:,0] = (pixIDs % szFrame) % dimX
+    # initial time frame
+    t_ini = track.configs[track.TIME_INI_KEY]
 
-            if ini:
-                pixPoints = pixs
-                ini = False
-            else:
-                pixPoints = np.vstack((pixPoints, pixs))
-
-    return pixPoints
-
-def writeEyeCheck(image_out_path, image_path, binary_path, pos, n_time):
-
-    for time_to_analyze in range(n_time):
+    for time_to_analyze in range(frame_ini, frame_end+1, 1):
         # pos_arr is a matrix (3,numberOfPoints) where 3 determines the dimension
         # x -> 0, y-> 1, z-> 2
-        pos_arr = np.asarray(pos[time_to_analyze][0:3])
+        pos_arr = np.asarray(track.getAllPositions(time_to_analyze, filtered = True))
 
-        # SuperVoxel IDs
-        svIDList = pos[time_to_analyze][3]
+        # Get IDs and SuperVoxel IDs
+        IDsList, svIDList = track.getSvIDsInFrame(time_to_analyze, filtered = True)
 
-        # Cells IDs
-        IDs = np.asarray(pos[time_to_analyze][4])
+        # Cells IDs array
+        IDs = np.asarray(IDsList)
         
         # read the tiff stacked image
-        im_out = readTIFImage(corrTIFPath(image_path, '?', time_to_analyze+1))
+        im_out = track.readInputImage(time_to_analyze)
 
         # read the binary file with the supervoxels
-        dims, pixIDList = readSuperVoxelFromFile(binary_path, time_to_analyze)
+        dims, pixIDList = track.readSVFile(time_to_analyze)
         pixPoints = calcPixelsAddress(svIDList, pixIDList, dims[0,0], dims[1,0])
 
         n_stacks = im_out.shape[0]
@@ -65,7 +48,7 @@ def writeEyeCheck(image_out_path, image_path, binary_path, pos, n_time):
             print('Time: ' + str(time_to_analyze) + ', Stack: ' + str(stack))
             
             # Set the path for the image
-            image_out_corr = corrTIFPath(image_out_path, '?', time_to_analyze)
+            image_out_corr = corrTIFPath(image_out_path, '?', time_to_analyze+t_ini)
             image_out_corr = corrTIFPath(image_out_corr, '@', stack+1)
             ensure_dir(image_out_corr)
 
@@ -74,8 +57,9 @@ def writeEyeCheck(image_out_path, image_path, binary_path, pos, n_time):
             to_include = np.equal(np.floor(pos_arr[2,:]), stack)
             to_include = np.logical_or(to_include, np.equal(np.ceil(pos_arr[2,:]), stack))
 
-            # write a list with all ID numbers to include
-            IDs_to_include = IDs[to_include].tolist()
+            # write a list with all track numbers to include 
+            # IDs_to_include = IDs[to_include].tolist()
+            IDs_to_include = [track.ID2Track(aux, time_to_analyze) for aux in IDs[to_include].tolist()]
 
             # data for the graphs
             x = pos_arr[0,to_include]
@@ -89,7 +73,6 @@ def writeEyeCheck(image_out_path, image_path, binary_path, pos, n_time):
             sv_image = np.zeros((size[0], size[1]))
             sv_image[sv_pix[:,1], sv_pix[:,0]] = 1
 
-
             # Plot the data and save figure
             ax.contourf(pix_x, pix_y, im_out[stack,:,:],
                 zorder = -1, cmap = cm.Greys_r)
@@ -97,34 +80,29 @@ def writeEyeCheck(image_out_path, image_path, binary_path, pos, n_time):
             ax.imshow(sv_image, alpha = 0.3, zorder = 0, cmap = cm.Blues)
             ax.scatter(x, y, c = error, cmap = cm.autumn, zorder = 1)
             for index, lin_text in enumerate(IDs_to_include):
-                ax.annotate(str(lin_text)[1:-1], (x[index],y[index]),
+                ax.annotate(str(lin_text), (x[index],y[index]),
                     zorder = 2, fontsize = 10)
+            ax.set_title('Time: %d, Stack: %d'%(time_to_analyze, stack))
             plt.savefig(image_out_corr)
             ax.clear()
 
 def main(*args):
 
-    n_time = 1
     date = "2015_6_22_15_33_43"
+    frame_ini = 1
+    frame_end = 2
     if len(args) >= 2:
-        n_time = int(args[0])
-        date = str(args[1])
+        frame_ini = int(args[0])
+        frame_end = int(args[1])
+        date = str(args[2])
 
-    # Define filenames
-    xml_path = "D:\\image_software\\results\\GMEMtracking3D_"+date+"\\XML_finalResult_lht_bckgRm\\GMEMfinalResult_frame????.xml"
-    image_out_path = "D:\\image_software\\results\\GMEMtracking3D_"+date+"\\eye_check\\T?????\\Z@@@.png"
-    binary_path = "D:\\image_software\\results\\GMEMtracking3D_"+date+"\\XML_finalResult_lht\\GMEMfinalResult_frame????.svb"
-    log_file = "D:\\image_software\\results\\GMEMtracking3D_"+date+"\\experimentLog_0001.txt"
-    f = open(log_file, 'r')
-    image_path = f.readlines()[4]
-    f.close()
-    image_path = image_path.split('=')[1][:-1] + '.tif'
+    folder = "D:\\image_software\\results\\GMEMtracking3D_"+date
+    image_out_path = folder + "\\eye_check\\T?????\\Z@@@.png"
 
-    # read positions from XML
-    pos = readXMLAmat(xml_path, n_time)
+    track = TrackingAnalysis(folder)
 
     # Run main file
-    writeEyeCheck(image_out_path, image_path, binary_path, pos, 1)
+    writeEyeCheck(image_out_path, frame_ini, frame_end, track)
 
 if __name__ == "__main__":
     import sys

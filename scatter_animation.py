@@ -9,11 +9,15 @@ import re
 from math import *
 from track_utils import TrackingAnalysis
 
-def update_scatter(num, track, points):
+def update_scatter(num, track, points, line, min_frames, mov):
     print('frame->'+str(num))
-    x, y, z = track.getPositions(num+1)
+    x, y, z = track.getAllPositions(num+1, filtered = False)
     points._offsets3d = (x, y, z)
-    return points
+
+    line.set_data(mov[1, :num], mov[2, :num])
+    line.set_3d_properties(mov[3,:num])
+
+    return points, line
 
 def main(*args):
 
@@ -23,28 +27,26 @@ def main(*args):
         n_time = int(args[0])
         date = str(args[1])
 
+    min_frames = 10
+
     # Define filenames
-    xml_path = "D:\\image_software\\results\\GMEMtracking3D_"+date+"\\XML_finalResult_lht_bckgRm\\GMEMfinalResult_frame????.xml"
+    folder = "D:\\image_software\\results\\GMEMtracking3D_"+date
 
-    # read positions
-    track = TrackingAnalysis(xml_path, n_time)
-    x, y, z = track.getPositions(0)
+    # read positions and apply filter
+    track = TrackingAnalysis(folder)
+    track.minFrameFilter(min_frames)
 
-    f = open('test_data.dat', 'w+')
-    track.trackCells()
-    for i, id_seq in enumerate(track.id_seq):
-        f.write('%d %d %d \n'%(i, track.t_appearance[i], len(id_seq)))
-    f.write('\nDivisions:\n')
-    for division in track.division:
-        f.write('%d %d \n'%(division['t'], division['parent_id']))
-    f.close
+    x, y, z = track.getAllPositions(0, filtered = False)
+
+    mov = np.asarray(track.getWholeMoviment(45))
+    print(mov.shape)
 
     # set up figure
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     points = ax.scatter(x, y, z, animated=True)
-
-    ani = animation.FuncAnimation(fig, update_scatter, frames=n_time-1, fargs = (track, points),
+    line, = ax.plot(mov[1, 0:1], mov[2, 0:1], mov[3, 0:1])
+    ani = animation.FuncAnimation(fig, update_scatter, frames=n_time-1, fargs = (track, points, line, min_frames, mov),
                               interval=20, blit=False)
 
     FFMpegWriter = animation.writers['ffmpeg']
