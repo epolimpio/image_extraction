@@ -1,16 +1,16 @@
 # Fdb version 3
-["bibtex README"] 1436437160 "README.aux" "README.bbl" "README" 1436437162
-  "README.aux" 1436437161 232 2934e589d3e262f67f0617f85f8142c6 ""
-  "README.bcf" 1436436470 101824 dab2a1eb7cd20a7892fa379a3d2af648 ""
+["bibtex README"] 1436783144 "README.aux" "README.bbl" "README" 1436783165
+  "README.aux" 1436783165 963 14a9ad87b1d6d6a5d2e7e4c447b82382 ""
+  "README.bcf" 0 -1 0 ""
   "References.bib" 1436436067 3361 5e7ab78f9aae383eca70d0338134c8c0 ""
   "c:/texlive/2015/texmf-dist/bibtex/bst/base/plain.bst" 1436428908 20613 bd3fbfa9f64872b81ac57a0dd2ed855f ""
   (generated)
   "README.blg"
   "README.bbl"
-["pdflatex"] 1436437160 "README.tex" "README.pdf" "README" 1436437162
-  "README.aux" 1436437161 232 2934e589d3e262f67f0617f85f8142c6 ""
-  "README.bbl" 1436437160 356 5d65c54a29f60640a4c0e8914e3d41ba "bibtex README"
-  "README.tex" 1436437156 875 a47b3303607e16d4966f1f66eccf26e2 ""
+["pdflatex"] 1436783164 "README.tex" "README.pdf" "README" 1436783165
+  "README.aux" 1436783165 963 14a9ad87b1d6d6a5d2e7e4c447b82382 ""
+  "README.bbl" 1436783144 356 5d65c54a29f60640a4c0e8914e3d41ba "bibtex README"
+  "README.tex" 1436783162 6950 3dc2d26ee1425ed15d1f5633fe77dbbe ""
   "c:/texlive/2015/texmf-dist/tex/context/base/supp-pdf.mkii" 1436429573 71627 94eb9990bed73c364d7f53f960cc8c5b ""
   "c:/texlive/2015/texmf-dist/tex/generic/oberdiek/etexcmds.sty" 1436429620 7612 c47308d923ec19888707b0f1792b326a ""
   "c:/texlive/2015/texmf-dist/tex/generic/oberdiek/ifluatex.sty" 1436429296 7324 11d14f318d865f420e692d4e6c9c18c3 ""
@@ -27,6 +27,7 @@
   "c:/texlive/2015/texmf-dist/tex/latex/amsmath/amstext.sty" 1436428818 2637 846ebe982d3549c7ede7ce135456f54a ""
   "c:/texlive/2015/texmf-dist/tex/latex/base/article.cls" 1436429392 20708 96f8bca6e380179cada1d49716376167 ""
   "c:/texlive/2015/texmf-dist/tex/latex/base/inputenc.sty" 1436429393 5619 3f48adceb9004b3fefe24c2d2df7d98e ""
+  "c:/texlive/2015/texmf-dist/tex/latex/base/omlcmr.fd" 1436429393 2257 34d599369bc8c4ea1835d39957e0a35f ""
   "c:/texlive/2015/texmf-dist/tex/latex/base/omscmr.fd" 1436429393 2256 09a793cb810c26c97ed035dcd724a0d0 ""
   "c:/texlive/2015/texmf-dist/tex/latex/base/omsenc.dfu" 1436429393 2005 e0fbde815e45538e4e17b060b7ef512e ""
   "c:/texlive/2015/texmf-dist/tex/latex/base/ot1enc.dfu" 1436429393 2757 e7c6d99525bade080bbc30ff97257875 ""
@@ -39,6 +40,9 @@
   "c:/texlive/2015/texmf-dist/tex/latex/graphics/trig.sty" 1436429251 3439 44bd4a1da7f27787173f2e99116b0a7f ""
   "c:/texlive/2015/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg" 1436429411 678 4792914a8f45be57bb98413425e4c7af ""
   "c:/texlive/2015/texmf-dist/tex/latex/latexconfig/graphics.cfg" 1436429411 3563 d35e897cae3b8c6848f6677b73370b54 ""
+  "c:/texlive/2015/texmf-dist/tex/latex/listings/listings.cfg" 1436429449 1827 d72ad54409ca5c1068a1939c63441bd2 ""
+  "c:/texlive/2015/texmf-dist/tex/latex/listings/listings.sty" 1436429449 80336 ff90c926c3d7bfdaa3d80ca57123b0bb ""
+  "c:/texlive/2015/texmf-dist/tex/latex/listings/lstmisc.sty" 1436429449 77028 c3eb00afb55a32bc13ca8da7f5234377 ""
   "c:/texlive/2015/texmf-dist/tex/latex/mathtools/mathtools.sty" 1436429520 51971 5d45c79698450b58343e299a429a0236 ""
   "c:/texlive/2015/texmf-dist/tex/latex/mathtools/mhsetup.sty" 1436429520 5175 696879833890ce832e12746d98d0e932 ""
   "c:/texlive/2015/texmf-dist/tex/latex/natbib/natbib.sty" 1436429596 45456 1c8843383c0bd05870c45fa0ebea6cc2 ""
@@ -48,7 +52,10 @@
   "c:/texlive/2015/texmf-dist/tex/latex/pdftex-def/pdftex.def" 1436429668 55368 3c8a0d99822330f2dfabc0dfb09ce897 ""
   "c:/texlive/2015/texmf-dist/tex/latex/tools/calc.sty" 1436429989 10214 78c09985255ed93018b1db2c4e2f6deb ""
   "c:/texlive/2015/texmf-dist/tex/latex/url/url.sty" 1436430033 12796 8edb7d69a20b857904dd0ea757c14ec9 ""
+  "pictures/binstar_install.png" 1436778770 62062 b27d48ac37635b5a185797c4ef2cca10 ""
+  "pictures/binstar_package.png" 1436777355 63156 d93a6e9bb5447cf4e60bce2c77683257 ""
+  "pictures/binstar_search.png" 1436777170 22504 8a9d89db78673ca315e973380b7e3d36 ""
   (generated)
+  "README.log"
   "README.pdf"
   "README.aux"
-  "README.log"

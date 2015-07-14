@@ -20,10 +20,10 @@ debugPathPrefix=D:\\image_software\results
 anisotropyZ=1.58
 
 #Image background level (set conservatively)
-backgroundThreshold=200
+backgroundThreshold=400
 
 #Tau level for generating an initial set of supervoxels from the hierarchical segmentation of watershed and persistence-based clustering
-persistanceSegmentationTau=5
+persistanceSegmentationTau=10
 
 
 #================ ADVANCED PARAMETERS ================
@@ -55,7 +55,7 @@ regularizePrecisionMatrixConstants_maxExcentricity=9.0
 temporalWindowForLogicalRules=5
 #Hysteresis values to apply the background classifier
 #If thrBackgroundDetectorHigh >= 1.0, then the background classifier is not used
-thrBackgroundDetectorHigh=0.7
+thrBackgroundDetectorHigh=0.9
 thrBackgroundDetectorLow=0.2
 #Short-lived daughter parameters
 SLD_lengthTMthr=5
@@ -79,7 +79,7 @@ deathThrOpticalFlow=-1
 #--- Trimming supervoxels using Otsu's threshold to distinguish background from foreground
 
 #Minimum size (in voxels) of a super-voxel (smaller super-voxels will be deleted)
-minNucleiSize=50
+minNucleiSize=100
 #Maximum size (in voxels) of a super-voxel (considered when we apply Otsu's threshold)
 maxNucleiSize=3000
 #Maximum percentage of voxels in a super-voxel belonging to foreground (considered when we apply Otsu's threshold)
@@ -92,7 +92,7 @@ conn3DsvTrim=6
 #Maximum number of nearest neighbors to consider when building the spatio-temporal graph for tracking
 maxNumKNNsupervoxel=10
 #Maximum distance (in pixels) of nearest neighbors to consider when building the spatio-temporal graph for tracking
-maxDistKNNsupervoxel=200.0
+maxDistKNNsupervoxel=41.0
 #If using 3D Haar-like features for cell division classification, this is the threshold for the machine learning classifier. You need to recompile the code in order to activate 3D Haar-like features.
 thrSplitScore=-1.0
 #threshold used to remove false positive cell divisions based on the distance of the mother cell to the midplane (cell division plane) between the two daughters

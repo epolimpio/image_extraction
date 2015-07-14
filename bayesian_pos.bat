@@ -1,13 +1,18 @@
 @echo off
-d:
 
 set /p init_time="Initial Time:"%=%
 set /p end_time="End Time:"%=%
+set init_folder=%CD%
 
-cd D:\image_software\SoftwareC\build\Release\
+set c_folder=D:\image_software\SoftwareC
+set config_path=D:\image_software\own\image_extraction\TGMM_configFile.txt
 
-TGMM.exe D:\image_software\own\image_extraction\TGMM_configFile.txt %init_time% %end_time%
+%c_folder:~0,2%
 
-cd D:\image_software\own\image_extraction
+cd %c_folder%\build\Release\
+
+TGMM.exe %config_path% %init_time% %end_time%
+
+cd %init_folder%
 
 pause

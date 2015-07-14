@@ -93,17 +93,27 @@ def readXMLAmat(filename, time_ini, time_end, symbol = '?'):
         tree = etree.parse(xml_path_corr)
         root = tree.getroot()
         all_points = root.xpath('GaussianMixtureModel')
-        x = [0.0,]*len(all_points)
-        y = [0.0,]*len(all_points)
-        z = [0.0,]*len(all_points)
-        svID = [[],]*len(all_points)
-        ID = [0,]*len(all_points)
-        parent = [0,]*len(all_points)
-        for i, point in enumerate(all_points):
-            [x[i], y[i], z[i]] = [float(x) for x in point.xpath('attribute::m')[0].split()]
-            svID[i] = [int(x) for x in point.xpath('attribute::svIdx')[0].split()]
-            ID[i] = int(point.xpath('attribute::id')[0].strip())
-            parent[i] = int(point.xpath('attribute::parent')[0].strip())
+        x = []
+        y = []
+        z = []
+        svID = []
+        ID = []
+        parent = []
+        i=0
+        for point in all_points:
+            # Needs try catch to avoid the errors in XML
+            try:
+                [x_aux, y_aux, z_aux] = [float(x) for x in point.xpath('attribute::m')[0].split()]
+                x[i] = x_aux
+                y[i] = y_aux
+                z[i] = z_aux
+                svID.append([int(x) for x in point.xpath('attribute::svIdx')[0].split()])
+                ID.append(int(point.xpath('attribute::id')[0].strip()))
+                parent.append(int(point.xpath('attribute::parent')[0].strip()))
+                i+=1
+            except:
+                continue
+
         pos[t] = [x,y,z,svID,ID,parent]
     return pos
 
@@ -197,11 +207,14 @@ class TrackingAnalysis:
     XML_PATH_KEY = 'XML_PATH'
     BINATY_PATH_KEY = 'BINATY_PATH'
 
-    def __init__(self, folder):
+    def __init__(self, folder, background_detector = True):
 
         self.folder = folder.strip('\\')
-        log_path = self.folder + '\\experimentLog_0001.txt'
-        xml_path = self.folder + '\\XML_finalResult_lht_bckgRm\\GMEMfinalResult_frame????.xml'
+        log_path = self.getLogPath(folder)
+        if background_detector:
+            xml_path = self.folder + '\\XML_finalResult_lht_bckgRm\\GMEMfinalResult_frame????.xml'
+        else:
+            xml_path = self.folder + '\\XML_finalResult_lht\\GMEMfinalResult_frame????.xml'
 
         self.configs = readLogAmat(log_path)
         self.configs[self.XML_PATH_KEY] = xml_path
@@ -219,6 +232,18 @@ class TrackingAnalysis:
 
         # track the cells
         self.trackCells()
+
+    def getLogPath(self, folder):
+        ''' 
+        Get the path of the log file inside the results folder
+        '''
+        path = self.folder + '\\experimentLog_0001.txt'
+        for f_path in os.listdir(folder):
+            if re.search('experimentLog_[0-9]*.txt', f_path):
+                path = self.folder + '\\' + f_path
+                break
+
+        return path
 
     def readInputImage(self, frame, symbol = '?'):
 

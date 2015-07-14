@@ -100,3 +100,7 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 *.mp4
+*.aux
+*.gz
+*.fdb_latexmk
+*.aux

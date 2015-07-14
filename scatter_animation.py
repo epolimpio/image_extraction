@@ -27,7 +27,7 @@ def main(*args):
         n_time = int(args[0])
         date = str(args[1])
 
-    min_frames = 10
+    min_frames = 5
 
     # Define filenames
     folder = "D:\\image_software\\results\\GMEMtracking3D_"+date
@@ -38,8 +38,7 @@ def main(*args):
 
     x, y, z = track.getAllPositions(0, filtered = False)
 
-    mov = np.asarray(track.getWholeMoviment(45))
-    print(mov.shape)
+    mov = np.asarray(track.getWholeMoviment(track.index_filter[0]))
 
     # set up figure
     fig = plt.figure()

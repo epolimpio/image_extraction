@@ -45,7 +45,7 @@ def writeEyeCheck(image_out_path, frame_ini, frame_end, track):
         n_stacks = im_out.shape[0]
         ax = plt.subplot(1,1,1)
         for stack in range(n_stacks):
-            print('Time: ' + str(time_to_analyze) + ', Stack: ' + str(stack))
+            print('Time: ' + str(time_to_analyze+t_ini) + ', Stack: ' + str(stack+1))
             
             # Set the path for the image
             image_out_corr = corrTIFPath(image_out_path, '?', time_to_analyze+t_ini)
@@ -82,7 +82,7 @@ def writeEyeCheck(image_out_path, frame_ini, frame_end, track):
             for index, lin_text in enumerate(IDs_to_include):
                 ax.annotate(str(lin_text), (x[index],y[index]),
                     zorder = 2, fontsize = 10)
-            ax.set_title('Time: %d, Stack: %d'%(time_to_analyze, stack))
+            ax.set_title('Time: %d, Stack: %d'%(time_to_analyze+t_ini, stack+1))
             plt.savefig(image_out_corr)
             ax.clear()
 
