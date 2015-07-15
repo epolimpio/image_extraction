@@ -99,21 +99,20 @@ def readXMLAmat(filename, time_ini, time_end, symbol = '?'):
         svID = []
         ID = []
         parent = []
-        i=0
         for point in all_points:
             # Needs try catch to avoid the errors in XML
             try:
                 [x_aux, y_aux, z_aux] = [float(x) for x in point.xpath('attribute::m')[0].split()]
-                x[i] = x_aux
-                y[i] = y_aux
-                z[i] = z_aux
-                svID.append([int(x) for x in point.xpath('attribute::svIdx')[0].split()])
+                x.append(x_aux)
+                y.append(y_aux)
+                z.append(z_aux)
+                svID.append([int(a) for a in point.xpath('attribute::svIdx')[0].split()])
                 ID.append(int(point.xpath('attribute::id')[0].strip()))
                 parent.append(int(point.xpath('attribute::parent')[0].strip()))
-                i+=1
             except:
+                print('Point ID {p_id} in file {f_path} is corrupted'.format( 
+                        f_path = xml_path_corr, p_id = int(point.xpath('attribute::id')[0].strip())))
                 continue
-
         pos[t] = [x,y,z,svID,ID,parent]
     return pos
 
@@ -180,9 +179,12 @@ def calcPixelsAddress(svIDList, pixIDList, dimX, dimY):
             else:
                 pixPoints = np.vstack((pixPoints, pixs))
 
-    return pixPoints
+    if ini:
+        return None
+    else:
+        return pixPoints
 
-class TrackingAnalysis:
+class TrackingAnalysis(object):
 
     """
     This class reads the results from the tracking software and
@@ -260,6 +262,23 @@ class TrackingAnalysis:
         binary_path = corrTIFPath(self.configs[self.BINATY_PATH_KEY], symbol, t)
 
         return readSuperVoxelFromFile(binary_path)
+
+    def printTrackData(self, path, filtered=True):
+        ''' 
+        Write a text file with all the track numbers, the frame it starts
+        and how long it lasts
+        '''
+
+        f = open(path, 'w')
+        for i, t in enumerate(self.t_appearance):
+            if not filtered:
+                f.write('{id}\t{time}\t{length}\n'.format(id = i, time = t, length=len(self.id_seq[i])))
+            else:
+                if i in self.index_filter:
+                    f.write('{id}\t{time}\t{length}\n'.format(id = i, time = t, length=len(self.id_seq[i])))
+
+        f.close()
+        return True
 
     def minFrameFilter(self, min_frames, keep_previous = True):
         """

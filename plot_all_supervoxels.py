@@ -73,11 +73,13 @@ def plotAllSV(image_out_path, time, track):
 
 def main(*args):
 
-    date = "2015_6_22_15_33_43"
-    time = 1
     if len(args) >= 2:
         time = int(args[0])
         date = str(args[1])
+    else:
+        print('Provide the arguments for the function')
+        print('Call must be: py plot_all_supervoxels.py <time> <results_date>')
+        return None
 
     folder = "D:\\image_software\\results\\GMEMtracking3D_"+date
     image_out_path = folder + "\\eye_check\\T?????_allSV\\Z@@@.png"

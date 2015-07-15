@@ -9,9 +9,9 @@ import re
 from math import *
 from track_utils import TrackingAnalysis
 
-def update_scatter(num, track, points, line, min_frames, mov):
+def update_scatter(num, track, points, line, frame_ini, mov):
     print('frame->'+str(num))
-    x, y, z = track.getAllPositions(num+1, filtered = False)
+    x, y, z = track.getAllPositions(num+frame_ini+1, filtered = False)
     points._offsets3d = (x, y, z)
 
     line.set_data(mov[1, :num], mov[2, :num])
@@ -21,11 +21,17 @@ def update_scatter(num, track, points, line, min_frames, mov):
 
 def main(*args):
 
-    n_time = 20
-    date = "2015_7_8_8_12_50"
-    if len(args) >= 2:
-        n_time = int(args[0])
-        date = str(args[1])
+    date = "2015_6_22_15_33_43"
+    frame_ini = 1
+    frame_end = 20
+    back = True
+    if len(args) == 3:
+        frame_ini = int(args[0])
+        frame_end = int(args[1])
+        date = str(args[2])
+    elif len(args) > 3:
+        if (args[3].lower() == 'false') or (str(args[3]) == '0'):
+            back = False
 
     min_frames = 5
 
@@ -36,7 +42,7 @@ def main(*args):
     track = TrackingAnalysis(folder)
     track.minFrameFilter(min_frames)
 
-    x, y, z = track.getAllPositions(0, filtered = False)
+    x, y, z = track.getAllPositions(frame_ini, filtered = False)
 
     mov = np.asarray(track.getWholeMoviment(track.index_filter[0]))
 
@@ -45,12 +51,12 @@ def main(*args):
     ax = fig.add_subplot(111, projection='3d')
     points = ax.scatter(x, y, z, animated=True)
     line, = ax.plot(mov[1, 0:1], mov[2, 0:1], mov[3, 0:1])
-    ani = animation.FuncAnimation(fig, update_scatter, frames=n_time-1, fargs = (track, points, line, min_frames, mov),
+    ani = animation.FuncAnimation(fig, update_scatter, frames=frame_end-frame_ini, fargs = (track, points, line, frame_ini, mov),
                               interval=20, blit=False)
 
     FFMpegWriter = animation.writers['ffmpeg']
     metadata = dict(title='Movie Test', artist='Matplotlib',
-        comment='Movie support!')
+        comment='Moving cells')
     writer = FFMpegWriter(fps=5, metadata=metadata)
     ani.save('basic_animation.mp4', writer=writer)
 

@@ -11,12 +11,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-from mpl_toolkits.mplot3d import Axes3D
-import re
-import tifffile as tff
-import lxml.etree as etree
-import struct
-import os
 from track_utils import *
 
 def writeEyeCheck(image_out_path, frame_ini, frame_end, track):
@@ -88,18 +82,28 @@ def writeEyeCheck(image_out_path, frame_ini, frame_end, track):
 
 def main(*args):
 
-    date = "2015_6_22_15_33_43"
-    frame_ini = 1
-    frame_end = 2
-    if len(args) >= 2:
+    if len(args) >= 3:
         frame_ini = int(args[0])
         frame_end = int(args[1])
         date = str(args[2])
+    else:
+        print('Provide the arguments for the function')
+        print('Call must be: py write_eye_check.py <frame_ini> <frame_end> <results_date>')
+        return None
+    
+    back = True
+    if len(args) > 3:
+        if (args[3].lower() == 'false') or (str(args[3]) == '0'):
+            back = False
+
 
     folder = "D:\\image_software\\results\\GMEMtracking3D_"+date
-    image_out_path = folder + "\\eye_check\\T?????\\Z@@@.png"
+    if back:
+        image_out_path = folder + "\\eye_check\\T?????\\Z@@@.png"
+    else:
+        image_out_path = folder + "\\eye_check\\T?????_noBackDetector\\Z@@@.png"
 
-    track = TrackingAnalysis(folder)
+    track = TrackingAnalysis(folder, back)
 
     # Run main file
     writeEyeCheck(image_out_path, frame_ini, frame_end, track)
