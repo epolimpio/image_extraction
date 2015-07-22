@@ -7,7 +7,7 @@ import os.path
 
 class ManualTrackWindow(object):
 
-    def __init__(self, parent, track, image_path_pattern):
+    def __init__(self, parent, track):
         """
         Constructor
         """
@@ -16,7 +16,8 @@ class ManualTrackWindow(object):
         self.t = track.configs[track.TIME_INI_KEY]
         self.track_num = -1
         self.track = track
-        self.path = image_path_pattern
+        self.tracking = False
+        self.path = track.folder + "\\eye_check\\T?????\\Z@@@.png"
         self.parent = parent
         self.parent.title("Manual Track")
         self.__track_mov = np.array([])
@@ -79,55 +80,175 @@ class ManualTrackWindow(object):
         
         # First initialize all the widgets
         # Entries for time, stack and track number
+        self.track_frame = tk.Frame(self.parent)
         self.track_str = tk.StringVar()
-        self.track_entry = tk.Entry(self.parent, textvariable=self.track_str, width=5)
+        self.track_label = tk.Label(self.track_frame, text = "Track #", width=12, anchor='w')
+        self.track_entry = tk.Entry(self.track_frame, textvariable=self.track_str, width=5)
         self.track_entry.bind("<FocusOut>", self.changeTrackEvent)
         self.track_entry.bind("<Return>", self.changeTrackEvent)
-        self.track_label = tk.Label(self.parent, text = "Track #")
         self.to_disable.append(self.track_entry)
+        self.track_label.grid(row=0, column=0)
+        self.track_entry.grid(row=0, column=1)
 
+        self.time_entry_frame = tk.Frame(self.parent)
         self.time_str = tk.StringVar()
-        self.time_entry = tk.Entry(self.parent, textvariable=self.time_str, width=5)
+        self.time_label = tk.Label(self.time_entry_frame, text = "Time Frame", width=12, anchor='w')
+        self.time_entry = tk.Entry(self.time_entry_frame, textvariable=self.time_str, width=5)
         self.time_entry.bind("<FocusOut>", self.changeFrameEvent)
         self.time_entry.bind("<Return>", self.changeFrameEvent)
-        self.time_label = tk.Label(self.parent, text = "Time Frame")
-        self.time_str.set(self.t)
+        self.time_str.set(int(self.t))
         self.to_disable.append(self.time_entry)
+        self.time_label.grid(row=0, column=0)
+        self.time_entry.grid(row=0, column=1)
 
+        self.stack_frame = tk.Frame(self.parent)
         self.stack_str = tk.StringVar()
-        self.stack_entry = tk.Entry(self.parent, textvariable=self.stack_str, width=5)
+        self.stack_label = tk.Label(self.stack_frame, text = "Stack #", width=12, anchor='w')
+        self.stack_entry = tk.Entry(self.stack_frame, textvariable=self.stack_str, width=5)
         self.stack_entry.bind("<FocusOut>", self.changeStackEvent)
         self.stack_entry.bind("<Return>", self.changeStackEvent)
-        self.stack_label = tk.Label(self.parent, text = "Stack #")
-        self.stack_str.set(self.z)
+        self.stack_str.set(int(self.z))
         self.to_disable.append(self.stack_entry)
+        self.stack_label.grid(row=0, column=0)
+        self.stack_entry.grid(row=0, column=1)
 
-        # Buttons for following, delete and merge tracks
+        # Following button
         self.follow_button = tk.Button(self.parent, text = "Follow", 
-            command = self.followButtonCallback)
+            command = self.followButtonCallback, width=14)
         self.following = False
         self.to_disable.append(self.follow_button)
-        self.merge_button = tk.Button(self.parent, text = "Merge", 
-            command = self.mergeButtonCallback)
+
+        # Merge Button and Entries
+        self.merge_frame = tk.Frame(self.parent)
+        self.merge_button = tk.Button(self.merge_frame, text = "Merge", 
+            command = self.mergeButtonCallback, width=14)
         self.to_disable.append(self.merge_button)
-        self.delete_button = tk.Button(self.parent, text = "Delete/Include", 
-            command = self.deleteButtonCallback)
+
+        self.merge_label1 = tk.Label(self.merge_frame, text="Tr #1")
+        self.merge_label2 = tk.Label(self.merge_frame, text="Tr #2")
+
+        self.merge_str1 = tk.StringVar()
+        self.merge_entry1 = tk.Entry(self.merge_frame, textvariable=self.merge_str1, width=5)
+        self.to_disable.append(self.merge_entry1)
+
+        self.merge_str2 = tk.StringVar()
+        self.merge_entry2 = tk.Entry(self.merge_frame, textvariable=self.merge_str2, width=5)
+        self.to_disable.append(self.merge_entry2)
+
+        self.merge_label1.grid(row=0,column=0, padx=2)
+        self.merge_label2.grid(row=0,column=1, padx=2)
+        self.merge_entry1.grid(row=1,column=0, padx=2)
+        self.merge_entry2.grid(row=1,column=1, padx=2)
+        self.merge_button.grid(row=1,column=2, padx=40)
+
+        # Delete Button and Entry
+        self.delete_frame = tk.Frame(self.parent)
+        self.delete_button = tk.Button(self.delete_frame, text = "Delete", 
+            command = self.deleteButtonCallback, width=14)
         self.to_disable.append(self.delete_button)
+
+        self.delete_str = tk.StringVar()
+        self.delete_label = tk.Label(self.delete_frame, text = "Tr #", width=4)
+        self.delete_entry = tk.Entry(self.delete_frame, textvariable=self.delete_str, width=5)
+        self.to_disable.append(self.delete_entry)
+        self.delete_label.grid(row=0, column=0, padx=2)
+        self.delete_entry.grid(row=0, column=1, padx=2) 
+        self.delete_button.grid(row=0, column=2, padx=40)
+
+        # Division Button and Entries
+        self.division_frame = tk.Frame(self.parent)
+        self.division_button = tk.Button(self.division_frame, text = "Add division", 
+            command = self.divisionButtonCallback, width=14)
+        self.to_disable.append(self.division_button)
+
+        self.division_parent_label = tk.Label(self.division_frame, text="Par", width=4)
+        self.division_child1_label = tk.Label(self.division_frame, text="Ch1", width=4)
+        self.division_child2_label = tk.Label(self.division_frame, text="Ch2", width=4)
+
+        self.division_parent_str = tk.StringVar()
+        self.division_parent_entry = tk.Entry(self.division_frame, textvariable=self.division_parent_str, width=5)
+        self.to_disable.append(self.division_parent_entry)
+
+        self.division_child1_str = tk.StringVar()
+        self.division_child1_entry = tk.Entry(self.division_frame, textvariable=self.division_child1_str, width=5)
+        self.to_disable.append(self.division_child1_entry)
+
+        self.division_child2_str = tk.StringVar()
+        self.division_child2_entry = tk.Entry(self.division_frame, textvariable=self.division_child2_str, width=5)
+        self.to_disable.append(self.division_child2_entry)
+
+        self.division_parent_label.grid(row=0,column=0, padx=2)
+        self.division_parent_entry.grid(row=1,column=0, padx=2)
+        self.division_child1_label.grid(row=0,column=1, padx=2)
+        self.division_child1_entry.grid(row=1,column=1, padx=2)
+        self.division_child2_label.grid(row=0,column=2, padx=2)
+        self.division_child2_entry.grid(row=1,column=2, padx=2)
+        self.division_button.grid(row=1,column=3, padx=2)
+
+        # Manual Track Button and Entry
+        self.manualtrack_frame = tk.Frame(self.parent)
+        self.manualtrack_button = tk.Button(self.manualtrack_frame, text = "Add track", 
+            command = self.trackButtonCallback, width=14)
+        self.to_disable.append(self.manualtrack_button)
+
+        self.manualtrack_str = tk.StringVar()
+        self.manualtrack_label = tk.Label(self.manualtrack_frame, text="Tr #", width=4)
+        self.manualtrack_entry = tk.Entry(self.manualtrack_frame, 
+            textvariable=self.manualtrack_str, width=5)
+        self.to_disable.append(self.manualtrack_entry)
+        self.manualtrack_label.grid(row=0, column=0, padx=2)
+        self.manualtrack_entry.grid(row=0, column=1, padx=2)       
+        self.manualtrack_button.grid(row=0, column=2, padx=40)
+
+        # Image selection Radio Buttons
+        self.radio_frame = tk.Frame(self.parent)
+        MODES = [
+            ("All info", "All"),
+            ("SV only", "SV"),
+            ("No info", "None"),
+        ]
+        self.radio_related_path = {
+            "All": "\\eye_check\\T?????\\Z@@@.png",
+            "SV": "\\eye_check\\T?????_allSV\\Z@@@.png",
+            "None": "\\eye_check\\T?????_stackOnly\\Z@@@.png",
+        }
+
+        self.radio_frame_str = tk.StringVar()
+        self.radio_frame_str.set("All")
+        for text, mode in MODES:
+            self.image_select_radio = tk.Radiobutton(self.radio_frame, text=text,
+                variable=self.radio_frame_str, value=mode, command=self.imageRadioCallback)
+            self.image_select_radio.pack(anchor = 'w')
+
+        # Image options Check Buttons
+        self.check_frame = tk.Frame(self.parent)
+        self.show_division_var = tk.IntVar()
+        self.show_division_check = tk.Checkbutton(self.check_frame,
+            text="Mark Divisions", variable=self.show_division_var,
+            command=self.showDivisionCallback)
+        self.show_division_check.pack(anchor = 'w')
+
+        self.show_manualtrack_var = tk.IntVar()
+        self.show_manualtrack_check = tk.Checkbutton(self.check_frame,
+            text="Manual Tracks", variable=self.show_manualtrack_var,
+            command=self.showManualTrackCallback)
+        self.show_manualtrack_check.pack(anchor = 'w')
 
         # Create the calibration interface
         self.calibrate_button = tk.Button(self.parent, text = "Calibrate", 
-            command = self.calibrateButtonCallback)
+            command = self.calibrateButtonCallback, width=14)
         self.to_disable.append(self.calibrate_button)
 
         self.calibration_table = [] # all widgets of the calibration table
+        self.calibration_frame = tk.Frame(self.parent)
         # Calibration table titles
-        self.x_label = tk.Label(self.parent, text = "X")
-        self.y_label = tk.Label(self.parent, text = "Y")
-        self.point1_button = tk.Button(self.parent, text = "Point 1", 
+        self.x_label = tk.Label(self.calibration_frame, text = "X")
+        self.y_label = tk.Label(self.calibration_frame, text = "Y")
+        self.point1_button = tk.Button(self.calibration_frame, text = "Point 1", 
             command = self.point1ButtonCallback)
-        self.point2_button = tk.Button(self.parent, text = "Point 2", 
+        self.point2_button = tk.Button(self.calibration_frame, text = "Point 2", 
             command = self.point2ButtonCallback)
-        self.point3_button = tk.Button(self.parent, text = "Point 3", 
+        self.point3_button = tk.Button(self.calibration_frame, text = "Point 3", 
             command = self.point3ButtonCallback)
         self.calibration_table.append(self.x_label)
         self.calibration_table.append(self.y_label)
@@ -137,68 +258,84 @@ class ManualTrackWindow(object):
 
         # Calibration table entries
         self.point1x_str = tk.StringVar()
-        self.point1x_entry = tk.Entry(self.parent, 
+        self.point1x_entry = tk.Entry(self.calibration_frame, 
             textvariable = self.point1x_str, width=5)
         self.point1y_str = tk.StringVar()
-        self.point1y_entry = tk.Entry(self.parent,
+        self.point1y_entry = tk.Entry(self.calibration_frame,
             textvariable = self.point1y_str, width=5)
         self.calibration_table.append(self.point1x_entry)
         self.calibration_table.append(self.point1y_entry)
 
         self.point2x_str = tk.StringVar()
-        self.point2x_entry = tk.Entry(self.parent,
+        self.point2x_entry = tk.Entry(self.calibration_frame,
             textvariable = self.point2x_str, width=5)
         self.point2y_str = tk.StringVar()
-        self.point2y_entry = tk.Entry(self.parent,
+        self.point2y_entry = tk.Entry(self.calibration_frame,
             textvariable = self.point2y_str, width=5)
         self.calibration_table.append(self.point2x_entry)
         self.calibration_table.append(self.point2y_entry)
 
         self.point3x_str = tk.StringVar()
-        self.point3x_entry = tk.Entry(self.parent,
+        self.point3x_entry = tk.Entry(self.calibration_frame,
             textvariable = self.point3x_str, width=5)
         self.point3y_str = tk.StringVar()
-        self.point3y_entry = tk.Entry(self.parent, 
+        self.point3y_entry = tk.Entry(self.calibration_frame, 
             textvariable = self.point3y_str, width=5)
         self.calibration_table.append(self.point3x_entry)
         self.calibration_table.append(self.point3y_entry)
 
+        # Position table in frame
+        self.x_label.grid(row=0, column=1, stick='s')
+        self.y_label.grid(row=0, column=2, stick='s')
+        self.point1_button.grid(row=1, column=0, padx=2, pady=2)
+        self.point1x_entry.grid(row=1, column=1, padx=2, pady=2)
+        self.point1y_entry.grid(row=1, column=2, padx=2, pady=2)
+        self.point2_button.grid(row=2, column=0, padx=2, pady=2)
+        self.point2x_entry.grid(row=2, column=1, padx=2, pady=2)
+        self.point2y_entry.grid(row=2, column=2, padx=2, pady=2)
+        self.point3_button.grid(row=3, column=0, padx=2, pady=2)
+        self.point3x_entry.grid(row=3, column=1, padx=2, pady=2)
+        self.point3y_entry.grid(row=3, column=2, padx=2, pady=2)
+
         # if the configuration file was read, set up the text entry
         if self.calibration_image_coord:
-            self.point1x_str.set(self.calibration_image_coord[0][0])
-            self.point1y_str.set(self.calibration_image_coord[0][1])
-            self.point2x_str.set(self.calibration_image_coord[1][0])
-            self.point2y_str.set(self.calibration_image_coord[1][1])
-            self.point3x_str.set(self.calibration_image_coord[2][0])
-            self.point3y_str.set(self.calibration_image_coord[2][1])
+            self.point1x_str.set(int(self.calibration_image_coord[0][0]))
+            self.point1y_str.set(int(self.calibration_image_coord[0][1]))
+            self.point2x_str.set(int(self.calibration_image_coord[1][0]))
+            self.point2y_str.set(int(self.calibration_image_coord[1][1]))
+            self.point3x_str.set(int(self.calibration_image_coord[2][0]))
+            self.point3y_str.set(int(self.calibration_image_coord[2][1]))
 
     def __placeWidgets(self):
         """
         Place widgets in the window.
         All the created widgets must be placed somewhere to show up.
         """
-        self.canvas.grid(row=0, column=0, rowspan=11)
-        self.track_label.grid(row=0, column=1)
-        self.track_entry.grid(row=0, column=2, columnspan=2)
-        self.time_label.grid(row=1, column=1)
-        self.time_entry.grid(row=1, column=2, columnspan=2)
-        self.stack_label.grid(row=2, column=1)
-        self.stack_entry.grid(row=2, column=2, columnspan=2)
-        self.follow_button.grid(row=3, column=1, columnspan=3)
-        self.merge_button.grid(row=4, column=1, columnspan=3)
-        self.delete_button.grid(row=5, column=1, columnspan=3)
-        self.calibrate_button.grid(row=6, column=1, columnspan=3)
-        self.x_label.grid(row=7, column=2, stick='s')
-        self.y_label.grid(row=7, column=3, stick='s')
-        self.point1_button.grid(row=8, column=1)
-        self.point1x_entry.grid(row=8, column=2)
-        self.point1y_entry.grid(row=8, column=3)
-        self.point2_button.grid(row=9, column=1)
-        self.point2x_entry.grid(row=9, column=2)
-        self.point2y_entry.grid(row=9, column=3)
-        self.point3_button.grid(row=10, column=1)
-        self.point3x_entry.grid(row=10, column=2)
-        self.point3y_entry.grid(row=10, column=3)
+        row = 0
+        self.track_frame.grid(row=row, column=1, columnspan=4, stick='w')
+        row += 1
+        self.time_entry_frame.grid(row=row, column=1, columnspan=4, stick='w')
+        row += 1
+        self.stack_frame.grid(row=row, column=1, columnspan=4, stick='w')
+        row += 1
+        self.radio_frame.grid(row=row, column=1, columnspan=2, stick='nw', pady=2)
+        self.check_frame.grid(row=row, column=3, columnspan=2, stick='nw', pady=2, padx=4)
+        row += 1
+        self.follow_button.grid(row=row, column=1, columnspan=4)
+        row += 1
+        self.merge_frame.grid(row=row, column=1, columnspan=4, stick='w')
+        row += 1
+        self.delete_frame.grid(row=row, column=1, columnspan=4, stick='w')
+        row += 1
+        self.division_frame.grid(row=row, column=1, columnspan=4, stick='w')
+        row += 1
+        self.manualtrack_frame.grid(row=row, column=1, columnspan=4, stick='w')        
+        row += 1
+        self.calibrate_button.grid(row=row, column=1, columnspan=4, stick='s')
+        row += 1
+        self.calibration_frame.grid(row=row, column=1, columnspan=4)
+
+        self.canvas.grid(row=0, column=0, rowspan=row+1)
 
         # Hide the calibration table initially
         self.iscalibrating = False
@@ -249,9 +386,9 @@ class ManualTrackWindow(object):
             self.img = ImageTk.PhotoImage(Image.open(path_aux))
             self.canvas.itemconfig(self.image_on_canvas, image = self.img)
             self.z = z_temp
-            self.stack_str.set(self.z)
+            self.stack_str.set(int(self.z))
             self.t = t_temp
-            self.time_str.set(self.t)
+            self.time_str.set(int(self.t))
         else:
             print('File {path} do not exist'.format(path = path_aux))
             return False
@@ -279,7 +416,7 @@ class ManualTrackWindow(object):
         Opens a warning pop-up with the given message
         """
         otherFrame = tk.Toplevel()
-        otherFrame.title("otherFrame")
+        otherFrame.title("WARNING")
         label = tk.Label(otherFrame, text = warning)
         label.pack()
         handler = lambda: self.onCloseOtherFrame(otherFrame)
@@ -368,6 +505,76 @@ class ManualTrackWindow(object):
     def deleteButtonCallback(self):
         print("Delete")
 
+    def divisionButtonCallback(self):
+        print("Division")
+
+    def trackButtonCallback(self):
+        
+        self.tracking = not self.tracking
+
+        if self.tracking:
+            # Setup things for the track
+            self.canvas.bind('<Double-Button-1>', self.getManualTrackPoint)
+            self.canvas.bind('<Button-3>', self.deleteManualTrackPoint)
+            self.canvas.unbind("<Button-1>")
+            self.__disableAll()
+            self.manualtrack_button.config(state='normal', relief='sunken')
+            self.show_manualtrack_check.config(state='disabled')
+            self.show_division_check.config(state='disabled')
+            self.canvas.focus_set()
+            self.current_manualtrack = {}
+            self.current_manualtrack_draw = {}
+        else:
+            self.canvas.unbind('<Double-Button-1>')
+            self.canvas.unbind('<Button-3>')
+            self.canvas.bind("<Button-1>", self.focusOnCanvas)
+            self.__enableAll()
+            self.manualtrack_button.config(state='normal', relief='raised')
+            self.show_manualtrack_check.config(state='normal')
+            self.show_division_check.config(state='normal')
+            print(self.current_track)
+
+    def drawManualTrackMark(self, x, y, text):
+
+        color = 'red'
+        offset = 3
+        oval = self.canvas.create_oval(x-offset, y-offset, x+offset, y+offset, fill = color)
+        label = self.canvas.create_text(x+offset+3, y+offset+3, text = text, fill = color)
+        return oval, label
+    
+    def deleteManualTrackMark(self, manualtrack_draw):
+
+        for x in manualtrack_draw:
+            self.canvas.delete(x)
+
+    def getManualTrackPoint(self, event):
+        x = event.x
+        y = event.y
+        coords = self.convertCoords(x,y)
+        if coords:
+            if self.t in self.current_manualtrack_draw:
+                self.deleteManualTrackMark(self.current_manualtrack_draw[self.t])
+
+            self.current_manualtrack[self.t] = [round(coords[0]), round(coords[1]), self.z]
+            self.current_manualtrack_draw[self.t] = self.drawManualTrackMark(x, y, 
+                    text='T{t},Z{z}'.format(t=self.t, z=self.z))
+
+
+    def deleteManualTrackPoint(self, event):
+
+        x = event.x
+        y = event.y
+
+        print(self.convertCoords(x,y))             
+
+    def showDivisionCallback(self):
+        print("Show Division")
+        print(self.show_division_var.get())
+
+    def showManualTrackCallback(self):
+        print("Show Manual Track")
+        print(self.show_manualtrack_var.get())
+
     def calibrateButtonCallback(self):
 
         self.iscalibrating = not self.iscalibrating
@@ -380,6 +587,10 @@ class ManualTrackWindow(object):
             self.__hideCalibrationTable()
             self.__hideCalibrationMarks()
 
+    def imageRadioCallback(self):
+        path_key = self.radio_frame_str.get()
+        self.path = self.track.folder + self.radio_related_path[path_key]
+        self.__changeImageOnCanvas(self.z, self.t)        
 
     def writeCalibrationFile(self):
 
@@ -492,7 +703,7 @@ class ManualTrackWindow(object):
 
         z_temp = int(self.stack_str.get())
         if not self.__changeImageOnCanvas(z_temp, self.t):
-            self.stack_str.set(self.z)
+            self.stack_str.set(int(self.z))
 
         if event.type == 2:
             self.focusOnCanvas()
@@ -501,7 +712,7 @@ class ManualTrackWindow(object):
 
         t_temp = int(self.time_str.get())
         if not self.__changeImageOnCanvas(self.z, t_temp):
-            self.time_str.set(self.t)
+            self.time_str.set(int(self.t))
 
         if event.type == 2:
             self.focusOnCanvas()
@@ -522,7 +733,7 @@ class ManualTrackWindow(object):
                     self.track_num = track_temp
                     self.__track_mov = track_mov
 
-        self.track_str.set(self.track_num if self.track_num >= 0 else "")
+        self.track_str.set(int(self.track_num) if self.track_num >= 0 else "")
 
         if event.type == 2:
             self.focusOnCanvas()
@@ -571,8 +782,7 @@ def main(*args):
     if os.path.exists(folder+"\\eye_check"):
         root = tk.Tk()
         track = TrackingAnalysis(folder)
-        image_path_pattern = track.folder + "\\eye_check\\T?????\\Z@@@.png"
-        window = ManualTrackWindow(root, track, image_path_pattern)
+        window = ManualTrackWindow(root, track)
         root.mainloop()
     else:
         print("Run the file write_eye_check.py first")
