@@ -184,6 +184,24 @@ def calcPixelsAddress(svIDList, pixIDList, dimX, dimY):
     else:
         return pixPoints
 
+def calcAllPixelsAddress(pixIDList, dimX, dimY):
+
+    ini = True
+    for pixIDs in pixIDList:
+        pixs = np.zeros((pixIDs.shape[0], 3))
+        szFrame = dimX*dimY
+        pixs[:,2] = pixIDs // szFrame
+        pixs[:,1] = (pixIDs % szFrame) // dimX
+        pixs[:,0] = (pixIDs % szFrame) % dimX
+
+        if ini:
+            pixPoints = pixs
+            ini = False
+        else:
+            pixPoints = np.vstack((pixPoints, pixs))
+
+    return pixPoints
+
 class TrackingAnalysis(object):
 
     """
@@ -453,7 +471,26 @@ class TrackingAnalysis(object):
 
         return x,y,z
 
-    def getWholeMoviment(self, track_index):
+    def getCenterOfMass(self, filtered = True):
+        """ 
+        Get the center of mass coordinates of the points
+        in time. The output is [x, y, z] with x,y,z the
+        size of the time
+        """
+        n_time = len(self.pos)
+        x_mean = [0.0,]*n_time
+        y_mean = [0.0,]*n_time
+        z_mean = [0.0,]*n_time      
+        for frame in range(n_time):
+            # get all the positions of the filtered points
+            x,y,z = self.getAllPositions(frame, filtered)
+            x_mean[frame] = np.asarray(x).mean() if len(x) > 0 else None
+            y_mean[frame] = np.asarray(y).mean() if len(y) > 0 else None
+            z_mean[frame] = np.asarray(z).mean() if len(z) > 0 else None
+
+        return x_mean, y_mean, z_mean
+
+    def getWholeMovement(self, track_index):
         """
         Get all the positions in time of a track denominated
         by the value track_index
@@ -591,4 +628,3 @@ class TrackingAnalysis(object):
         self.index_filter = list(range(len(self.id_seq)))
 
         return self.id_seq, self.t_appearance
-
