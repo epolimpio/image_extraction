@@ -55,6 +55,7 @@ def main(*args):
     pos_y = int(out['pos_y'])
     n_time = int(out['n_time'])
     n_z = int(out['n_z'])
+    t_ini = int(out['t_ini'])
 
     path_in = str(out['path_in'].strip('"'))
     print(path_in)
@@ -64,10 +65,10 @@ def main(*args):
     # --- Main program --- #
 
     for t in range(n_time):
-        t_str = '{0:05d}'.format(t+1)
+        t_str = '{0:05d}'.format(t+t_ini)
         print("Time -> " + t_str)
-        path_in_corr = corrTIFPath(path_in, '?', t+1)
-        path_out_corr = corrTIFPath(path_out, '?', t+1)
+        path_in_corr = corrTIFPath(path_in, '?', t+t_ini)
+        path_out_corr = corrTIFPath(path_out, '?', t+t_ini)
         for z in range(n_z):
             z_str = '{0:03d}'.format(z+1)
             path_corr = corrTIFPath(path_in_corr, '@', z+1)
