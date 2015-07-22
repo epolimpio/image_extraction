@@ -43,8 +43,10 @@ def main(*args):
     track.minFrameFilter(min_frames)
 
     x, y, z = track.getAllPositions(frame_ini, filtered = False)
-
-    mov = np.asarray(track.getWholeMoviment(track.index_filter[0]))
+    
+    # mov is an array (4, time), where 4 is:
+    # 0 -> frame, 1-3 -> x,y,z
+    mov = np.asarray(track.getWholeMovement(track.index_filter[0]))
 
     # set up figure
     fig = plt.figure()
