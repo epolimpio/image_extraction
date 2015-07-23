@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import tkinter as tk
 import numpy as np
+import lxml.etree as etree
 from PIL import ImageTk, Image
 from track_utils import corrTIFPath, TrackingAnalysis, ensure_dir
 import os.path
@@ -18,9 +19,17 @@ class ManualTrackWindow(object):
         self.track = track
         self.tracking = False
         self.path = track.folder + "\\eye_check\\T?????\\Z@@@.png"
+        
+        # parent window parameters
         self.parent = parent
         self.parent.title("Manual Track")
+        
+        # Auxiliary variable with the followed track
         self.__track_mov = np.array([])
+
+        # Auxiliary variable that keeps track of all the manual
+        # tracks drawn in canvas
+        self.__manual_draws = []
 
         # set up the main canvas
         self.__initImageCanvas()
@@ -29,6 +38,8 @@ class ManualTrackWindow(object):
         # place widgets in the window
         self.__placeWidgets()
 
+        # Attribute that keeps all the manual tracks
+        self.all_manualtracks = self.readManualTrackFile()
 
     def __initImageCanvas(self):
         """
@@ -389,11 +400,52 @@ class ManualTrackWindow(object):
             self.stack_str.set(int(self.z))
             self.t = t_temp
             self.time_str.set(int(self.t))
+            if bool(self.show_manualtrack_var.get()):
+                self.__putManualTrackMarks(z_temp, t_temp)
         else:
             print('File {path} do not exist'.format(path = path_aux))
             return False
 
         return True
+
+    def __deleteAllManualTrackMarks(self):
+        """
+        Delete all manual track marks in the canvas
+        """
+
+        if self.__manual_draws:
+            for draw in self.__manual_draws:
+                self.canvas.delete(draw)
+
+    def __putManualTrackMarks(self, z_temp, t_temp):
+        """
+        Include the manual track marks in the canvas,
+        deleting the old marks
+        """
+        max_diff = 10
+        color_below = '#00ff00' # green
+        color_same = '#deb887' # yellowish
+        color_above = '#ee82ee' # purple
+        offset = 2
+        
+        self.__deleteAllManualTrackMarks()
+
+        if self.all_manualtracks:
+            self.__manual_draws = []
+            for id_ in self.all_manualtracks:
+                if t_temp in self.all_manualtracks[id_]:
+                    x, y, z = self.all_manualtracks[id_][t_temp]
+                    z_diff = z - z_temp
+                    if abs(z_diff)<=max_diff:
+                        if z_diff == 0:
+                            color = color_same
+                        elif z_diff < 0:
+                            color = color_below
+                        else:
+                            color = color_above
+                        self.__manual_draws.append(
+                            self.canvas.create_oval(x-offset, y-offset,
+                            x+offset, y+offset, fill = color, outline=''))
 
     def __showCalibrationMarks(self):
         """
@@ -424,14 +476,39 @@ class ManualTrackWindow(object):
         btn.pack()
         # make sure widget instances are deleted
         otherFrame.protocol("WM_DELETE_WINDOW", otherFrame.destroy)
-
+    
     def onCloseOtherFrame(self, otherFrame):
         """
         Close warning window properly
         """
         otherFrame.destroy()
 
-    def convertCoords(self, x, y):
+    def yesnoWindow(self, message='', execute_if_yes=None, **kwargs):
+        """
+        Opens a warning pop-up with the given message
+        """
+        otherFrame = tk.Toplevel()
+        otherFrame.title("CONFIRM")
+        label = tk.Label(otherFrame, text = message)
+        handler_yes = lambda: self.closeYesNo(otherFrame, execute_if_yes, **kwargs)
+        btn_yes = tk.Button(otherFrame, text="Yes", command=handler_yes)
+        
+        handler_no = lambda: self.closeYesNo(otherFrame, None)
+        btn_no = tk.Button(otherFrame, text="No", command=handler_no)
+        label.grid(row=0, column=0, columnspan=2)
+        btn_yes.grid(row=1, column=0, padx=2)
+        btn_no.grid(row=1, column=1, padx=2)
+        # make sure widget instances are deleted
+        otherFrame.protocol("WM_DELETE_WINDOW", otherFrame.destroy)
+
+    def closeYesNo(self, otherFrame, command, **kwargs):
+
+        if command:
+            command(**kwargs)
+        otherFrame.destroy()
+
+
+    def convertCoords(self, x, y, inverse=False):
         """
         Converts the XY of the click to the coordinates in the image
         according to calibration. If the calibration is not done
@@ -474,8 +551,14 @@ class ManualTrackWindow(object):
             return None
 
         # If passed the requirements, then calculate the transformation
-        x_out = x0_im + alfa*(x-x0)
-        y_out = y0_im + beta*(y-y0)
+        if inverse:
+            # Convert from coord to pixels (inverse)
+            x_out = x0 + (x-x0_im)/alfa
+            y_out = y0 + (y-y0_im)/beta
+        else:
+            # Convert from pixels to coord
+            x_out = x0_im + alfa*(x-x0)
+            y_out = y0_im + beta*(y-y0)
 
         return x_out, y_out
 
@@ -514,38 +597,188 @@ class ManualTrackWindow(object):
 
         if self.tracking:
             # Setup things for the track
-            self.canvas.bind('<Double-Button-1>', self.getManualTrackPoint)
-            self.canvas.bind('<Button-3>', self.deleteManualTrackPoint)
-            self.canvas.unbind("<Button-1>")
-            self.__disableAll()
-            self.manualtrack_button.config(state='normal', relief='sunken')
-            self.show_manualtrack_check.config(state='disabled')
-            self.show_division_check.config(state='disabled')
-            self.canvas.focus_set()
-            self.current_manualtrack = {}
-            self.current_manualtrack_draw = {}
+            self.startManualTrack()
         else:
-            self.canvas.unbind('<Double-Button-1>')
-            self.canvas.unbind('<Button-3>')
-            self.canvas.bind("<Button-1>", self.focusOnCanvas)
-            self.__enableAll()
-            self.manualtrack_button.config(state='normal', relief='raised')
-            self.show_manualtrack_check.config(state='normal')
-            self.show_division_check.config(state='normal')
-            print(self.current_track)
+            id_ = self.writeManualTrackFile()
+            if id_:
+                self.all_manualtracks[id_] = self.current_manualtrack
+            self.cancelManualTrack()
 
-    def drawManualTrackMark(self, x, y, text):
+    def writeManualTrackFile(self):
+
+        if self.current_manualtrack:
+            filename = self.track.folder + "\\manual_track_config\\manual_track.xml"
+            ensure_dir(filename)
+            if os.path.isfile(filename):
+                tree = etree.parse(filename)
+                root = tree.getroot()
+                id_ = int(root[-1].attrib['id']) + 1
+            else:
+                root = etree.Element("document")
+                id_ = 0
+            doc = etree.ElementTree(root)
+            element = etree.SubElement(root, "track")
+            element.attrib['id'] = '%d'%(id_)
+            for t in self.current_manualtrack:
+                x_, y_, z = self.current_manualtrack[t]
+                x, y = self.convertCoords(x_, y_)
+                time = etree.SubElement(element, "point")
+                time.attrib['time'] = '%d'%(t)
+                time.attrib['x'] = '%d'%(round(x))
+                time.attrib['y'] = '%d'%(round(y))
+                time.attrib['z'] = '%d'%(z)
+ 
+            doc.write(filename)
+            return id_
+        else:
+            return None
+
+    def readManualTrackFile(self):
+
+        filename = self.track.folder + "\\manual_track_config\\manual_track.xml"
+        out = {}
+        
+        # Test if there is calibration
+        test_pass = self.convertCoords(1, 1, inverse = True)
+        if not test_pass:
+            self.warningWindow('No calibration found, could not load manual tracks')
+            print('Redo the calibration and restart the program')
+            return out    
+
+        if os.path.isfile(filename):
+            tree = etree.parse(filename)
+            root = tree.getroot()
+            for element in root.iter('track'):
+                id_ = int(element.attrib['id'])
+                out[id_] = {}
+                for point in element.iter('point'):
+                    time = int(point.attrib['time'])
+                    x_ = int(point.attrib['x'])
+                    y_ = int(point.attrib['y'])
+                    z = int(point.attrib['z'])
+
+                    [x,y] = self.convertCoords(x_, y_, inverse = True)
+                    out[id_][time] = [round(x),round(y),z]
+
+        return out  
+
+    def stopManualTrack(self, event):
+
+        self.yesnoWindow('Do you want to cancel?', self.cancelManualTrack)
+
+    def startManualTrack(self):
+
+        self.canvas.bind('<Double-Button-1>', self.getManualTrackPoint)
+        self.canvas.bind('<Button-3>', self.deleteManualTrackPoint)
+        self.canvas.bind('<Escape>', self.stopManualTrack)
+        self.canvas.unbind("<Button-1>")
+        self.__disableAll()
+        self.manualtrack_button.config(state='normal', relief='sunken')
+        self.show_manualtrack_check.config(state='disabled')
+        self.show_division_check.config(state='disabled')
+        self.__putManualTrackMarks(self.z, self.t)
+        self.show_manualtrack_var.set(1)
+        self.canvas.focus_set()
+        self.current_manualtrack = {}
+        self.current_manualtrack_draw = {}
+        self.history_line_draw = None
+
+    def cancelManualTrack(self):
+        
+        self.canvas.unbind('<Double-Button-1>')
+        self.canvas.unbind('<Button-3>')
+        self.canvas.unbind('<Escape>')
+        self.canvas.bind("<Button-1>", self.focusOnCanvas)
+        self.__enableAll()
+        self.manualtrack_button.config(state='normal', relief='raised')
+        self.show_manualtrack_check.config(state='normal')
+        self.show_division_check.config(state='normal')
+
+        self.deleteHistoryLine()
+        if self.t in self.current_manualtrack_draw:
+            self.deleteManualTrackMark(self.current_manualtrack_draw[self.t])
+
+        self.canvas.focus_set()
+        self.current_manualtrack = {}
+        self.current_manualtrack_draw = {}
+        self.history_line_draw = None
+        self.tracking = False
+
+    def drawManualTrackMark(self, x, y, z):
 
         color = 'red'
-        offset = 3
-        oval = self.canvas.create_oval(x-offset, y-offset, x+offset, y+offset, fill = color)
-        label = self.canvas.create_text(x+offset+3, y+offset+3, text = text, fill = color)
-        return oval, label
+        color_up = '#ff4500'
+        color_down = '#1e90ff'
+        color_flat = '#c0c0c0'
+        offset = 2
+        if (self.t-1) in self.current_manualtrack:
+            previous = self.current_manualtrack[self.t-1]
+
+            if previous[2]<z:
+                color_line = color_up
+            elif previous[2]>z:
+                color_line = color_down
+            else:
+                color_line = color_flat
+
+            line = self.canvas.create_line(previous[0], previous[1], x, y, fill = color_line)
+        else:
+            line = None
+
+        oval = self.canvas.create_oval(x-offset, y-offset, x+offset, y+offset, fill = color, outline='')
+        label = self.canvas.create_text(x+offset+5, y+offset+5, text = 'Z%d'%z, fill = color)
+        return oval, line, label
+
+    def drawHistoryLine(self, num_points):
+        
+        self.history_line_draw = None
+        color_up = '#ff4500'
+        color_down = '#1e90ff'
+        color_flat = '#c0c0c0'
+        color_oval = 'blue'
+        offset = 2
+        points = {}
+        if self.current_manualtrack:
+            for t in range(self.t-1, self.t-num_points+1, -1):
+                if t in self.current_manualtrack:
+                    points[t] = self.current_manualtrack[t]
+                else:
+                    break
+
+            if len(points)>=1:
+                lines = []
+                for t in points:
+                    if t == self.t-1:
+                        x,y,z = points[t]
+                        lines.append(self.canvas.create_oval(x-offset, y-offset, 
+                            x+offset, y+offset, fill = color_oval, outline=''))
+                    else:
+                        point = points[t+1]
+                        previous = points[t]
+                        if previous[2]<point[2]:
+                            color_line = color_up
+                        elif previous[2]>point[2]:
+                            color_line = color_down
+                        else:
+                            color_line = color_flat
+                        lines.append(self.canvas.create_line(
+                            previous[0], previous[1], point[0], point[1],
+                            fill = color_line))
+                
+                self.history_line_draw = lines
+
+    def deleteHistoryLine(self):
+
+        if self.history_line_draw:
+            for x in self.history_line_draw:
+                self.canvas.delete(x)        
+
     
     def deleteManualTrackMark(self, manualtrack_draw):
 
         for x in manualtrack_draw:
-            self.canvas.delete(x)
+            if x:
+                self.canvas.delete(x)
 
     def getManualTrackPoint(self, event):
         x = event.x
@@ -555,25 +788,35 @@ class ManualTrackWindow(object):
             if self.t in self.current_manualtrack_draw:
                 self.deleteManualTrackMark(self.current_manualtrack_draw[self.t])
 
-            self.current_manualtrack[self.t] = [round(coords[0]), round(coords[1]), self.z]
-            self.current_manualtrack_draw[self.t] = self.drawManualTrackMark(x, y, 
-                    text='T{t},Z{z}'.format(t=self.t, z=self.z))
+            self.deleteHistoryLine()
 
+            self.current_manualtrack[self.t] = [x, y, self.z]
+            self.current_manualtrack_draw[self.t] = self.drawManualTrackMark(x, y, self.z)
+
+            self.drawHistoryLine(10)
 
     def deleteManualTrackPoint(self, event):
 
         x = event.x
         y = event.y
-
-        print(self.convertCoords(x,y))             
+        # check if the click was close to the point, if so delete
+        if self.t in self.current_manualtrack:
+            coord_actual = self.current_manualtrack[self.t]
+            if (abs(x-coord_actual[0])<5) and (abs(y-coord_actual[1])<5):
+                del self.current_manualtrack[self.t]
+                self.deleteManualTrackMark(self.current_manualtrack_draw[self.t])
+                del self.current_manualtrack_draw[self.t]
 
     def showDivisionCallback(self):
         print("Show Division")
         print(self.show_division_var.get())
 
     def showManualTrackCallback(self):
-        print("Show Manual Track")
-        print(self.show_manualtrack_var.get())
+
+        if bool(self.show_manualtrack_var.get()):
+            self.__putManualTrackMarks(self.z, self.t)
+        else:
+            self.__deleteAllManualTrackMarks()
 
     def calibrateButtonCallback(self):
 
@@ -746,22 +989,27 @@ class ManualTrackWindow(object):
     def arrowEvent(self, event):
         """
         Handle the arrow events in the main canvas.
+        This is used to navigate in time frame and stack.
         """
-
         if event.keysym.lower() == 'up':
             z_temp = self.z + 1
             t_temp = self.t
+            caller_event = 'stack+1'
         elif event.keysym.lower() == 'down':
             z_temp = self.z - 1
             t_temp = self.t
+            caller_event = 'stack-1'
         elif event.keysym.lower() == 'right':
             z_temp = self.z
             t_temp = self.t + 1
+            caller_event = 'time+1'
         elif event.keysym.lower() == 'left':                   
             z_temp = self.z
             t_temp = self.t - 1
+            caller_event = 'time-1'
 
-        if self.following and (t_temp != self.t):
+        # If following update according to the position of the tracking point
+        if self.following and (caller_event[:4]=='time'):
             t_ini = self.track.configs[self.track.TIME_INI_KEY]
             check_time = np.equal(self.__track_mov[0,:], t_temp - t_ini)
             if check_time.sum() > 0:
@@ -769,7 +1017,20 @@ class ManualTrackWindow(object):
             else:
                 print('Not tracked in the next time')
                 return None
+
         self.__changeImageOnCanvas(z_temp, t_temp)
+
+        # If tracking, redraw tracking lines and points
+        if self.tracking and (caller_event[:4]=='time'):
+            self.deleteHistoryLine()
+            self.drawHistoryLine(10)
+            shift = int(caller_event[-2:])
+            if self.t-shift in self.current_manualtrack_draw:
+                self.deleteManualTrackMark(self.current_manualtrack_draw[self.t-shift])
+
+            if self.t in self.current_manualtrack:
+                x,y,z = self.current_manualtrack[self.t]
+                self.current_manualtrack_draw[self.t] = self.drawManualTrackMark(x, y, z)
 
 def main(*args):
 
