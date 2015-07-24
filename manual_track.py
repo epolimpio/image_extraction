@@ -8,6 +8,8 @@ import os.path
 
 class ManualTrackWindow(object):
 
+    SIZE_HISTORY_LINE = 10
+
     def __init__(self, parent, track):
         """
         Constructor
@@ -15,7 +17,7 @@ class ManualTrackWindow(object):
         # initialize class variables
         self.z = 1
         self.t = track.configs[track.TIME_INI_KEY]
-        self.track_num = -1
+        self.track_num = None
         self.track = track
         self.tracking = False
         self.path = track.folder + "\\eye_check\\T?????\\Z@@@.png"
@@ -40,6 +42,7 @@ class ManualTrackWindow(object):
 
         # Attribute that keeps all the manual tracks
         self.all_manualtracks = self.readManualTrackFile()
+        self.__updateManualTrackOption()
 
     def __initImageCanvas(self):
         """
@@ -84,8 +87,9 @@ class ManualTrackWindow(object):
 
     def __initInterfaceWidgets(self):
         """
-        Set up the rest of the interface widgets
-        besides the image.
+        Set up the rest of the interface widgets besides the image canvas.
+        Many widgets are placed inside frames for modularity
+        of their positioning within the main window.
         """
         self.to_disable = [] # contains the list of all the elements disabled when waiting for action
         
@@ -202,14 +206,14 @@ class ManualTrackWindow(object):
             command = self.trackButtonCallback, width=14)
         self.to_disable.append(self.manualtrack_button)
 
-        self.manualtrack_str = tk.StringVar()
         self.manualtrack_label = tk.Label(self.manualtrack_frame, text="Tr #", width=4)
-        self.manualtrack_entry = tk.Entry(self.manualtrack_frame, 
-            textvariable=self.manualtrack_str, width=5)
-        self.to_disable.append(self.manualtrack_entry)
+        self.manualtrack_str = tk.StringVar()
+        self.manualtrack_list = tk.OptionMenu(self.manualtrack_frame, self.manualtrack_str, ())
+        self.manualtrack_list.config(width=5)
+        self.to_disable.append(self.manualtrack_list)
         self.manualtrack_label.grid(row=0, column=0, padx=2)
-        self.manualtrack_entry.grid(row=0, column=1, padx=2)       
-        self.manualtrack_button.grid(row=0, column=2, padx=40)
+        self.manualtrack_list.grid(row=0, column=1, padx=2)       
+        self.manualtrack_button.grid(row=0, column=2, padx=35)
 
         # Image selection Radio Buttons
         self.radio_frame = tk.Frame(self.parent)
@@ -320,7 +324,9 @@ class ManualTrackWindow(object):
     def __placeWidgets(self):
         """
         Place widgets in the window.
-        All the created widgets must be placed somewhere to show up.
+        All the created widgets or frames must be placed somewhere to show up.
+        Many of the widgets are already placed inside a frame, then we only
+        need to position the frame within the parent window
         """
         row = 0
         self.track_frame.grid(row=row, column=1, columnspan=4, stick='w')
@@ -463,6 +469,48 @@ class ManualTrackWindow(object):
             for x in self.calibration_draws[draw]:
                 self.canvas.itemconfig(x, state= 'hidden')
 
+    def __updateManualTrackOption(self):
+        """
+        Updates the manual track options list
+        """
+        # reset list
+        menu = self.manualtrack_list["menu"]
+        menu.delete(0, "end")
+
+        # get all the tracks
+        options = ['New']
+        for id_ in self.all_manualtracks:
+            options.append('M{id}'.format(id=id_))
+
+        for string in options:
+            handler = lambda value=string: self.manualTrackListChange(value)
+            menu.add_command(label=string, command=handler)
+
+        self.manualtrack_str.set('New')
+
+    def manualTrackListChange(self, string):
+        """
+        Handle what happens when the element on the manual track option menu changes
+        """
+        self.manualtrack_str.set(string)
+        if string.lower() == 'new':
+            self.manualtrack_button.config(text='Add Track')
+        else:
+            self.manualtrack_button.config(text='Edit Track')
+
+    def createListBoxFrame(self, parent):
+        """
+        Creates a listbox with a scrollbar inside a frame
+        """
+        frame = tk.Frame(parent)
+        scrollbar = tk.Scrollbar(frame, orient='vertical')
+        listbox = tk.Listbox(frame, yscrollcommand=scrollbar.set)
+        scrollbar.config(command=listbox.yview)
+        scrollbar.pack(side='right', fill='y')
+        listbox.pack(side='left', fill='both', expand=1)
+
+        return frame, listbox, scrollbar
+
     def warningWindow(self, warning):
         """
         Opens a warning pop-up with the given message
@@ -566,15 +614,16 @@ class ManualTrackWindow(object):
 
         return x_out, y_out
 
-
     def followButtonCallback(self):
         """
-        Callback of the Follow button.
-        It is intended to follow a track in time.
-        """        
-        if self.track_num >= 0:
+        Callback of the follow button
+        When clicked enter or leave follow the track mode
+        """     
+        if self.track_num is not None:
             self.following = not self.following
             if self.following:
+                if self.track_str.get()[:1].lower() == 'm':
+                    self.show_manualtrack_var.set(1)
                 self.canvas.focus_set()
                 self.__disableAll()
                 self.follow_button.config(state = 'normal', relief = 'sunken')
@@ -588,19 +637,34 @@ class ManualTrackWindow(object):
         else:
             self.warningWindow("Select a Track to follow")
 
-
     def mergeButtonCallback(self):
+        """
+        Callback of the merge button
+        Used to merge different tracks
+        """
+        # --- TO BE IMPLEMENTED --- #
         print("Merge")
 
     def deleteButtonCallback(self):
+        """
+        Callback of the Delete button
+        Used to insert track in black list
+        """
+        # --- TO BE IMPLEMENTED --- #
         print("Delete")
 
     def divisionButtonCallback(self):
+        """
+        Callback of the division button
+        Used to insert, edit of delete a division mark
+        """
+        # --- TO BE IMPLEMENTED --- #
         print("Division")
 
     def trackButtonCallback(self):
         """
         Callback of the Manual Track button
+        Enter or leave the manual track mode
         """
         self.tracking = not self.tracking
 
@@ -614,7 +678,7 @@ class ManualTrackWindow(object):
                 # Only stops the tracking mode
                 self.cancelManualTrack()
 
-    def writeManualTrackFile(self):
+    def writeManualTrackFile(self, id_in = None):
         """
         Write the current manual track to the XML file
         Return the id of the written track
@@ -625,7 +689,18 @@ class ManualTrackWindow(object):
             if os.path.isfile(filename):
                 tree = etree.parse(filename)
                 root = tree.getroot()
-                id_ = int(root[-1].attrib['id']) + 1
+                if id_in is None:
+                    # Find the maximum id
+                    id_max = 0
+                    for track in root.iter('track'):
+                        aux = int(track.attrib['id'])
+                        id_max = aux if aux > id_max else id_max
+                    id_ = id_max + 1 
+                else:
+                    id_ = id_in
+                    # delete the previous data
+                    for old in root.xpath("//track[@id={id_}]".format(id_=id_)):
+                        old.getparent().remove(old)
             else:
                 root = etree.Element("document")
                 id_ = 0
@@ -683,10 +758,16 @@ class ManualTrackWindow(object):
         Save the data acquired in the last manual track.
         This is the callback of the saving confirmation
         window.
-        """    
-        id_ = self.writeManualTrackFile()
+        """
+        string = self.manualtrack_str.get()
+        if string.lower == 'new':   
+            id_ = self.writeManualTrackFile()
+        else:
+            id_ = self.writeManualTrackFile(int(string[1:]))
+        
         if id_:
             self.all_manualtracks[id_] = self.current_manualtrack
+            self.__updateManualTrackOption()
         self.cancelManualTrack()
 
     def getManualTrackPoint(self, event):
@@ -745,9 +826,19 @@ class ManualTrackWindow(object):
         self.__putManualTrackMarks(self.z, self.t)
         self.show_manualtrack_var.set(1)
         self.canvas.focus_set()
-        self.current_manualtrack = {}
-        self.current_manualtrack_draw = {}
+        string = self.manualtrack_str.get()
         self.history_line_draw = None
+        self.current_manualtrack_draw = {}
+        if string.lower() == 'new':
+            self.current_manualtrack = {}
+        else:
+            # load the previous for edition
+            id_ = int(string[1:]) # remove the M
+            self.current_manualtrack = self.all_manualtracks[id_]
+            t = list(self.current_manualtrack.keys())[0]
+            [x,y,z] = self.current_manualtrack[t]
+            self.__changeImageOnCanvas(z, t)
+            self.current_manualtrack_draw[self.t] = self.drawManualTrackMark(x, y, self.z)
 
     def cancelManualTrack(self):
         """
@@ -774,7 +865,9 @@ class ManualTrackWindow(object):
         self.tracking = False
 
     def drawManualTrackMark(self, x, y, z):
-
+        """
+        Draw a new point in manual track to canvas
+        """ 
         color = 'red'
         color_up = '#ff4500'
         color_down = '#1e90ff'
@@ -798,8 +891,13 @@ class ManualTrackWindow(object):
         label = self.canvas.create_text(x+offset+5, y+offset+5, text = 'Z%d'%z, fill = color)
         return oval, line, label
 
-    def drawHistoryLine(self, num_points):
-        
+    def drawHistoryLine(self, num_points=None):
+        """
+        Draw the history line of current manual track
+        """
+        if num_points is None:
+            num_points = self.SIZE_HISTORY_LINE
+
         self.history_line_draw = None
         color_up = '#ff4500'
         color_down = '#1e90ff'
@@ -837,32 +935,46 @@ class ManualTrackWindow(object):
                 self.history_line_draw = lines
 
     def deleteHistoryLine(self):
-
+        """
+        Delete the drawn history line for current manual track
+        """  
         if self.history_line_draw:
             for x in self.history_line_draw:
                 self.canvas.delete(x)        
 
     
     def deleteManualTrackMark(self, manualtrack_draw):
-
+        """
+        Delete the drawn last point in current manual track
+        """  
         for x in manualtrack_draw:
             if x:
                 self.canvas.delete(x)
 
 
     def showDivisionCallback(self):
+        """
+        Callback of the show division Checkbutton
+        If true shows the division marks
+        """ 
         print("Show Division")
         print(self.show_division_var.get())
 
     def showManualTrackCallback(self):
-
+        """
+        Callback of the show manual track Checkbutton
+        If true shows the manual track points
+        """ 
         if bool(self.show_manualtrack_var.get()):
             self.__putManualTrackMarks(self.z, self.t)
         else:
             self.__deleteAllManualTrackMarks()
 
     def calibrateButtonCallback(self):
-
+        """
+        Callback of the calibrate button
+        When clicked enter or leave calibration mode
+        """
         self.iscalibrating = not self.iscalibrating
         
         if self.iscalibrating:
@@ -874,12 +986,18 @@ class ManualTrackWindow(object):
             self.__hideCalibrationMarks()
 
     def imageRadioCallback(self):
+        """
+        Callback of the image options radiobuttons
+        Choose which image will be shown
+        """
         path_key = self.radio_frame_str.get()
         self.path = self.track.folder + self.radio_related_path[path_key]
         self.__changeImageOnCanvas(self.z, self.t)        
 
     def writeCalibrationFile(self):
-
+        """
+        Write the current calibration to a file for further use
+        """
         if self.calibration_image_coord and (len(self.calibration_coords)==3):
             filename = self.track.folder + "\\manual_track_config\\calibration.conf"
             ensure_dir(filename)
@@ -895,7 +1013,9 @@ class ManualTrackWindow(object):
             f.close()
 
     def readCalibrationFile(self):
-
+        """
+        Read the calibration file previously saved
+        """
         filename = self.track.folder + "\\manual_track_config\\calibration.conf"
         if os.path.isfile(filename):
             try: # in case the file was corrupted
@@ -914,7 +1034,9 @@ class ManualTrackWindow(object):
             return False
 
     def getImageCalibration(self):
-
+        """
+        Get calibration points from the entries of the calibration table
+        """
         string_var = [[self.point1x_str, self.point1y_str],
                       [self.point2x_str, self.point2y_str],
                       [self.point3x_str, self.point3y_str]]
@@ -934,12 +1056,16 @@ class ManualTrackWindow(object):
         return True
 
     def deleteCalibrationMark(self, calibration_draw):
-
+        """
+        Delete a calibration mark from canvas
+        """
         for x in calibration_draw:
             self.canvas.delete(x)           
 
     def drawCalibrationMark(self, x, y, text):
-
+        """
+        Draw a calibration mark on canvas
+        """        
         color = 'red'
         offset = 6
         x1 = self.canvas.create_line(x-offset, y-offset, x+offset, y+offset, fill = color, width = 2)
@@ -948,7 +1074,10 @@ class ManualTrackWindow(object):
         return x1, x2, label
 
     def getCalibrationXY(self, event):
-
+        """
+        Callback of Double Click on canvas when in calibration mode
+        Get the position clicked, save it and draw mark
+        """  
         x = event.x
         y = event.y
 
@@ -964,29 +1093,43 @@ class ManualTrackWindow(object):
         self.__enableAll()
 
     def getCalibrationPointOnCanvas(self):
-
+        """
+        Enter the Calibration mode
+        """ 
         # Wait for the choice of the point
         self.canvas.bind('<Double-Button-1>', self.getCalibrationXY)
         self.canvas.unbind("<Button-1>")
         self.__disableAll()
 
     def point1ButtonCallback(self):
-        
+        """
+        Callback of Point 1 button.
+        Used to get calibration point 1
+        """        
         self.__caller = 0
         self.getCalibrationPointOnCanvas()
         
     def point2ButtonCallback(self):
-        
+        """
+        Callback of Point 2 button.
+        Used to get calibration point 2
+        """           
         self.__caller = 1
         self.getCalibrationPointOnCanvas()
 
     def point3ButtonCallback(self):
-        
+        """
+        Callback of Point 2 button.
+        Used to get calibration point 2
+        """           
         self.__caller = 2
         self.getCalibrationPointOnCanvas()
 
     def changeStackEvent(self, event):
-
+        """
+        Callback of stack number entry
+        Used to change the stack when requested
+        """ 
         z_temp = int(self.stack_str.get())
         if not self.__changeImageOnCanvas(z_temp, self.t):
             self.stack_str.set(int(self.z))
@@ -995,7 +1138,10 @@ class ManualTrackWindow(object):
             self.focusOnCanvas()
 
     def changeFrameEvent(self, event):
-
+        """
+        Callback of time frame number entry
+        Used to change the frame when requested
+        """ 
         t_temp = int(self.time_str.get())
         if not self.__changeImageOnCanvas(self.z, t_temp):
             self.time_str.set(int(self.t))
@@ -1004,28 +1150,56 @@ class ManualTrackWindow(object):
             self.focusOnCanvas()
 
     def changeTrackEvent(self, event):
+        """
+        Callback of track number entry
+        Used to go to the first point of a track
+        """
+        string = self.track_str.get()
+        manual = False
+        if string[:1].lower() == 'm':
+            manual = True
+            string = string[1:]
+        track_temp = int(string)
 
-        track_temp = int(self.track_str.get())
+        t_ini = self.track.configs[self.track.TIME_INI_KEY]
 
-        if track_temp < len(self.track.id_seq):
-            track_mov = np.array(self.track.getWholeMovement(track_temp))
-            if track_mov.size > 0:
-                track_mov = np.ceil(track_mov)
-                t_ini = self.track.configs[self.track.TIME_INI_KEY]
+        if manual:
+            if track_temp in self.all_manualtracks: 
+                self.show_manualtrack_var.set(1)
+                track = self.all_manualtracks[track_temp]
+                track_mov = np.zeros((4,len(track)), dtype = np.int32)
+                i = 0
+                for t in track:
+                    track_mov[0,i] = t - t_ini
+                    track_mov[1:4, i] = np.asarray(track[t])
+                    i+=1
+
                 t_temp = track_mov[0,0] + t_ini
-                z_temp = round(track_mov[3,0])
-
+                z_temp = track_mov[3,0]
                 if self.__changeImageOnCanvas(z_temp, t_temp):
-                    self.track_num = track_temp
+                    self.track_num = 'M%d'%track_temp
                     self.__track_mov = track_mov
+        else:
+            if track_temp < len(self.track.id_seq):
+                track_mov = np.array(self.track.getWholeMovement(track_temp))
+                if track_mov.size > 0:
+                    track_mov = np.ceil(track_mov)
+                    t_temp = track_mov[0,0] + t_ini
+                    z_temp = round(track_mov[3,0])
 
-        self.track_str.set(int(self.track_num) if self.track_num >= 0 else "")
+                    if self.__changeImageOnCanvas(z_temp, t_temp):
+                        self.track_num = '%d'%track_temp
+                        self.__track_mov = track_mov
+
+        self.track_str.set(self.track_num if self.track_num is not None else "")
 
         if event.type == 2:
             self.focusOnCanvas()
 
     def focusOnCanvas(self, event):
-
+        """
+        Give focus on canvas when called
+        """
         self.canvas.focus()
         self.canvas.focus_set()
 
@@ -1061,6 +1235,11 @@ class ManualTrackWindow(object):
                 print('Not tracked in the next time')
                 return None
 
+        # If editing a track, return to the correct stack
+        if self.tracking and (caller_event[:4]=='time'):
+            if t_temp in self.current_manualtrack:
+                z_temp = self.current_manualtrack[t_temp][2]
+
         self.__changeImageOnCanvas(z_temp, t_temp)
 
         # If tracking, redraw tracking lines and points
@@ -1076,7 +1255,9 @@ class ManualTrackWindow(object):
                 self.current_manualtrack_draw[self.t] = self.drawManualTrackMark(x, y, z)
 
 def main(*args):
-
+    """
+    Main function to run from outside
+    """
     if len(args) >= 1:
         date = str(args[0])
     else:   
