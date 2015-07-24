@@ -483,9 +483,11 @@ class ManualTrackWindow(object):
         """
         otherFrame.destroy()
 
-    def yesnoWindow(self, message='', execute_if_yes=None, **kwargs):
+    def yesnoWindow(self, message='', execute_if_yes=None, execute_if_no = None, **kwargs):
         """
-        Opens a warning pop-up with the given message
+        Opens a pop-up with the given message and Yes or No options
+        If yes, execute_if_yes is executed, if no execute_if_no is executed
+        Both are executed with the same parameters **kwargs
         """
         otherFrame = tk.Toplevel()
         otherFrame.title("CONFIRM")
@@ -493,7 +495,7 @@ class ManualTrackWindow(object):
         handler_yes = lambda: self.closeYesNo(otherFrame, execute_if_yes, **kwargs)
         btn_yes = tk.Button(otherFrame, text="Yes", command=handler_yes)
         
-        handler_no = lambda: self.closeYesNo(otherFrame, None)
+        handler_no = lambda: self.closeYesNo(otherFrame, execute_if_no, **kwargs)
         btn_no = tk.Button(otherFrame, text="No", command=handler_no)
         label.grid(row=0, column=0, columnspan=2)
         btn_yes.grid(row=1, column=0, padx=2)
@@ -502,7 +504,9 @@ class ManualTrackWindow(object):
         otherFrame.protocol("WM_DELETE_WINDOW", otherFrame.destroy)
 
     def closeYesNo(self, otherFrame, command, **kwargs):
-
+        """
+        Closes YesNo Window and execute function if needed
+        """        
         if command:
             command(**kwargs)
         otherFrame.destroy()
@@ -564,7 +568,10 @@ class ManualTrackWindow(object):
 
 
     def followButtonCallback(self):
-
+        """
+        Callback of the Follow button.
+        It is intended to follow a track in time.
+        """        
         if self.track_num >= 0:
             self.following = not self.following
             if self.following:
@@ -592,20 +599,26 @@ class ManualTrackWindow(object):
         print("Division")
 
     def trackButtonCallback(self):
-        
+        """
+        Callback of the Manual Track button
+        """
         self.tracking = not self.tracking
 
         if self.tracking:
-            # Setup things for the track
             self.startManualTrack()
         else:
-            id_ = self.writeManualTrackFile()
-            if id_:
-                self.all_manualtracks[id_] = self.current_manualtrack
-            self.cancelManualTrack()
+            if self.current_manualtrack:
+                # Ask if will save
+                self.yesnoWindow("Save the acquired track?", self.saveManualTrack)
+            else:
+                # Only stops the tracking mode
+                self.cancelManualTrack()
 
     def writeManualTrackFile(self):
-
+        """
+        Write the current manual track to the XML file
+        Return the id of the written track
+        """   
         if self.current_manualtrack:
             filename = self.track.folder + "\\manual_track_config\\manual_track.xml"
             ensure_dir(filename)
@@ -634,7 +647,10 @@ class ManualTrackWindow(object):
             return None
 
     def readManualTrackFile(self):
-
+        """
+        Read XML file with all the manual tracks
+        Returns a dictionary with all the data
+        """  
         filename = self.track.folder + "\\manual_track_config\\manual_track.xml"
         out = {}
         
@@ -660,16 +676,66 @@ class ManualTrackWindow(object):
                     [x,y] = self.convertCoords(x_, y_, inverse = True)
                     out[id_][time] = [round(x),round(y),z]
 
-        return out  
+        return out
+
+    def saveManualTrack(self):
+        """
+        Save the data acquired in the last manual track.
+        This is the callback of the saving confirmation
+        window.
+        """    
+        id_ = self.writeManualTrackFile()
+        if id_:
+            self.all_manualtracks[id_] = self.current_manualtrack
+        self.cancelManualTrack()
+
+    def getManualTrackPoint(self, event):
+        """
+        Double click callback when tracking, add point to track
+        """
+        x = event.x
+        y = event.y
+        coords = self.convertCoords(x,y)
+        if coords:
+            if self.t in self.current_manualtrack_draw:
+                self.deleteManualTrackMark(self.current_manualtrack_draw[self.t])
+
+            self.deleteHistoryLine()
+
+            self.current_manualtrack[self.t] = [x, y, self.z]
+            self.current_manualtrack_draw[self.t] = self.drawManualTrackMark(x, y, self.z)
+
+            self.drawHistoryLine(10)
+
+    def deleteManualTrackPoint(self, event):
+        """
+        Left click callback when tracking, delete point clicked
+        """
+        x = event.x
+        y = event.y
+        # check if the click was close to the point, if so delete
+        if self.t in self.current_manualtrack:
+            coord_actual = self.current_manualtrack[self.t]
+            if (abs(x-coord_actual[0])<5) and (abs(y-coord_actual[1])<5):
+                del self.current_manualtrack[self.t]
+                self.deleteManualTrackMark(self.current_manualtrack_draw[self.t])
+                del self.current_manualtrack_draw[self.t]
 
     def stopManualTrack(self, event):
-
+        """
+        Escape callback when tracking, confirm if cancel
+        """
         self.yesnoWindow('Do you want to cancel?', self.cancelManualTrack)
 
     def startManualTrack(self):
-
+        """
+        Starts the manual track status in the window
+        """          
+        # Double click add point
         self.canvas.bind('<Double-Button-1>', self.getManualTrackPoint)
+        # Left click on top of point delete it
         self.canvas.bind('<Button-3>', self.deleteManualTrackPoint)
+        # Escape cancel the track after confirmation
         self.canvas.bind('<Escape>', self.stopManualTrack)
         self.canvas.unbind("<Button-1>")
         self.__disableAll()
@@ -684,7 +750,10 @@ class ManualTrackWindow(object):
         self.history_line_draw = None
 
     def cancelManualTrack(self):
-        
+        """
+        Stops the manual track status in the window,
+        returning it to normal
+        """        
         self.canvas.unbind('<Double-Button-1>')
         self.canvas.unbind('<Button-3>')
         self.canvas.unbind('<Escape>')
@@ -780,32 +849,6 @@ class ManualTrackWindow(object):
             if x:
                 self.canvas.delete(x)
 
-    def getManualTrackPoint(self, event):
-        x = event.x
-        y = event.y
-        coords = self.convertCoords(x,y)
-        if coords:
-            if self.t in self.current_manualtrack_draw:
-                self.deleteManualTrackMark(self.current_manualtrack_draw[self.t])
-
-            self.deleteHistoryLine()
-
-            self.current_manualtrack[self.t] = [x, y, self.z]
-            self.current_manualtrack_draw[self.t] = self.drawManualTrackMark(x, y, self.z)
-
-            self.drawHistoryLine(10)
-
-    def deleteManualTrackPoint(self, event):
-
-        x = event.x
-        y = event.y
-        # check if the click was close to the point, if so delete
-        if self.t in self.current_manualtrack:
-            coord_actual = self.current_manualtrack[self.t]
-            if (abs(x-coord_actual[0])<5) and (abs(y-coord_actual[1])<5):
-                del self.current_manualtrack[self.t]
-                self.deleteManualTrackMark(self.current_manualtrack_draw[self.t])
-                del self.current_manualtrack_draw[self.t]
 
     def showDivisionCallback(self):
         print("Show Division")

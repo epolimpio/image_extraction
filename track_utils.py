@@ -36,7 +36,6 @@ def corrTIFPath(path, symbol, value):
     Correct the path replacing the symbols with the integer value.
     This value is padded by zeros according to the sequence of symbols.
     """ 
-
     reg_expr_search = '(\%s+)'%str(symbol)
     length_of_replace = len(re.search(reg_expr_search, path).group(0))
     str_format = '{0:%sd}'%'{0:02d}'.format(length_of_replace)
@@ -84,7 +83,6 @@ def readXMLAmat(filename, time_ini, time_end, symbol = '?'):
         4 -> ID
         5 -> Parent
     """
-
     # Number of parameters to be read. Today is 6.
     n_param_read = 6
     pos = [[[],]*n_param_read,]*(time_end-time_ini+1)
@@ -117,7 +115,9 @@ def readXMLAmat(filename, time_ini, time_end, symbol = '?'):
     return pos
 
 def readLogAmat(path):
-    
+    """
+    Read the parameters of the tracking software
+    """    
     # Open file
     f = open(path, 'r')
     # initialize variables
@@ -162,7 +162,10 @@ def readSuperVoxelFromFile(filename, imageDim = 3):
     return dataDims, pixIDlist
 
 def calcPixelsAddress(svIDList, pixIDList, dimX, dimY):
-
+    """
+    Calculate the pixels addresses of the supervoxels
+    This is only done for the supervoxels in svIdList
+    """
     ini = True
     for svIDs in svIDList:
         for svID in svIDs:
@@ -185,7 +188,9 @@ def calcPixelsAddress(svIDList, pixIDList, dimX, dimY):
         return pixPoints
 
 def calcAllPixelsAddress(pixIDList, dimX, dimY):
-
+    """
+    Calculate the pixels addresses of all the supervoxels
+    """
     ini = True
     for pixIDs in pixIDList:
         pixs = np.zeros((pixIDs.shape[0], 3))
@@ -203,7 +208,6 @@ def calcAllPixelsAddress(pixIDList, dimX, dimY):
     return pixPoints
 
 class TrackingAnalysis(object):
-
     """
     This class reads the results from the tracking software and
     offer a myriad of functions to extract the data and filter
@@ -212,8 +216,8 @@ class TrackingAnalysis(object):
     PARAMETERS
 
     folder: folder with the results to analyse
+    background_detector (optional): boolean if to use the detector
     """
-
     # Filter constants
     MIN_FRAMES_KEY = 'MIN_FRAMES'
     BLACK_LIST_KEY = 'BLACK_LIST'
@@ -228,19 +232,21 @@ class TrackingAnalysis(object):
     BINATY_PATH_KEY = 'BINATY_PATH'
 
     def __init__(self, folder, background_detector = True):
-
+        """
+        Constructor
+        """
+        # Folders
         self.folder = folder.strip('\\')
         log_path = self.getLogPath(folder)
         if background_detector:
             xml_path = self.folder + '\\XML_finalResult_lht_bckgRm\\GMEMfinalResult_frame????.xml'
         else:
             xml_path = self.folder + '\\XML_finalResult_lht\\GMEMfinalResult_frame????.xml'
-
+        # Configurations of the run
         self.configs = readLogAmat(log_path)
         self.configs[self.XML_PATH_KEY] = xml_path
         self.configs[self.LOG_PATH_KEY] = log_path
         self.configs[self.BINATY_PATH_KEY] = self.folder + '\\XML_finalResult_lht\\GMEMfinalResult_frame????.svb'
-
         time_ini = self.configs[self.TIME_INI_KEY]
         time_end = self.configs[self.TIME_END_KEY]
         self.n_frames = time_end - time_ini + 1
@@ -254,9 +260,9 @@ class TrackingAnalysis(object):
         self.trackCells()
 
     def getLogPath(self, folder):
-        ''' 
+        """ 
         Get the path of the log file inside the results folder
-        '''
+        """
         path = self.folder + '\\experimentLog_0001.txt'
         for f_path in os.listdir(folder):
             if re.search('experimentLog_[0-9]*.txt', f_path):
@@ -266,7 +272,9 @@ class TrackingAnalysis(object):
         return path
 
     def readInputImage(self, frame, symbol = '?'):
-
+        """
+        Wrap the functions to read the input image file
+        """
         time_ini = self.configs[self.TIME_INI_KEY] 
         t = time_ini + frame
         image_path = corrTIFPath(self.configs[self.IMAGE_PATH_KEY], symbol, t)
@@ -274,7 +282,9 @@ class TrackingAnalysis(object):
         return readTIFImage(image_path)
 
     def readSVFile(self, frame, symbol = '?'):
-
+        """
+        Wrap the functions to read the supervoxel file
+        """
         time_ini = self.configs[self.TIME_INI_KEY] 
         t = time_ini + frame
         binary_path = corrTIFPath(self.configs[self.BINATY_PATH_KEY], symbol, t)
@@ -282,10 +292,10 @@ class TrackingAnalysis(object):
         return readSuperVoxelFromFile(binary_path)
 
     def printTrackData(self, path, filtered=True):
-        ''' 
+        """ 
         Write a text file with all the track numbers, the frame it starts
         and how long it lasts
-        '''
+        """
 
         f = open(path, 'w')
         for i, t in enumerate(self.t_appearance):
@@ -525,14 +535,20 @@ class TrackingAnalysis(object):
         return t, x, y, z
 
     def ID2Track(self, id_num, frame):
-
+        """
+        Return the number of the track ID
+        given the ID of the particle and the time frame
+        """
         if id_num in self.dict_track[frame]:
             return self.dict_track[frame][id_num]
 
         return None
 
     def Track2ID(self, track, frame):
-
+        """
+        Return the ID of the particle
+        given the track ID and the time frame
+        """
         t_ini = self.t_appearance[track]
         id_seq = self.id_seq[track]
         if (frame >= t_ini) and (frame < len(id_seq) + t_ini):
@@ -541,6 +557,9 @@ class TrackingAnalysis(object):
         return None
 
     def _addTrack(self, t, id_num):
+        """
+        Add new track to data
+        """
         # Add a new sequence
         self.id_seq.append([])
         self.id_seq[self._n_cell].append(id_num)
@@ -553,6 +572,9 @@ class TrackingAnalysis(object):
         self._n_cell += 1
 
     def _addDivision(self, t, child2_id, parent_index):
+        """
+        Add new division
+        """
         # First get the data to save
         parent_id = self.id_seq[parent_index][-2]
         child1_id = self.id_seq[parent_index][-1]
@@ -584,8 +606,7 @@ class TrackingAnalysis(object):
 
         For easieness, we store the last ID of each tracked cell
         in the variables last_id and last_id_index
-        """  
-        
+        """        
         # variable initialization
         self.t_appearance = []
         self.id_seq = []
