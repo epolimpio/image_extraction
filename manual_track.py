@@ -402,9 +402,9 @@ class ManualTrackWindow(object):
         if os.path.isfile(path_aux):
             self.img = ImageTk.PhotoImage(Image.open(path_aux))
             self.canvas.itemconfig(self.image_on_canvas, image = self.img)
-            self.z = z_temp
+            self.z = int(z_temp)
             self.stack_str.set(int(self.z))
-            self.t = t_temp
+            self.t = int(t_temp)
             self.time_str.set(int(self.t))
             if bool(self.show_manualtrack_var.get()):
                 self.__putManualTrackMarks(z_temp, t_temp)
@@ -760,7 +760,7 @@ class ManualTrackWindow(object):
         window.
         """
         string = self.manualtrack_str.get()
-        if string.lower == 'new':   
+        if string.lower() == 'new':   
             id_ = self.writeManualTrackFile()
         else:
             id_ = self.writeManualTrackFile(int(string[1:]))
@@ -906,6 +906,7 @@ class ManualTrackWindow(object):
         offset = 2
         points = {}
         if self.current_manualtrack:
+
             for t in range(self.t-1, self.t-num_points+1, -1):
                 if t in self.current_manualtrack:
                     points[t] = self.current_manualtrack[t]
