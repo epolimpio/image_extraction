@@ -1241,19 +1241,19 @@ class ManualTrackWindow(object):
             if t_temp in self.current_manualtrack:
                 z_temp = self.current_manualtrack[t_temp][2]
 
-        self.__changeImageOnCanvas(z_temp, t_temp)
+        if self.__changeImageOnCanvas(z_temp, t_temp):
 
-        # If tracking, redraw tracking lines and points
-        if self.tracking and (caller_event[:4]=='time'):
-            self.deleteHistoryLine()
-            self.drawHistoryLine(10)
-            shift = int(caller_event[-2:])
-            if self.t-shift in self.current_manualtrack_draw:
-                self.deleteManualTrackMark(self.current_manualtrack_draw[self.t-shift])
+            # If tracking, redraw tracking lines and points
+            if self.tracking and (caller_event[:4]=='time'):
+                self.deleteHistoryLine()
+                self.drawHistoryLine(10)
+                shift = int(caller_event[-2:])
+                if self.t-shift in self.current_manualtrack_draw:
+                    self.deleteManualTrackMark(self.current_manualtrack_draw[self.t-shift])
 
-            if self.t in self.current_manualtrack:
-                x,y,z = self.current_manualtrack[self.t]
-                self.current_manualtrack_draw[self.t] = self.drawManualTrackMark(x, y, z)
+                if self.t in self.current_manualtrack:
+                    x,y,z = self.current_manualtrack[self.t]
+                    self.current_manualtrack_draw[self.t] = self.drawManualTrackMark(x, y, z)
 
 def main(*args):
     """

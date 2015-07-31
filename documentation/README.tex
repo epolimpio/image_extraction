@@ -82,7 +82,18 @@ There are several extra packages needed to run the analysis. The packages marked
 \item{lxml}
 \item{numpy*}
 \item{matplotlib*}
+\item{Pillow*}
+\item{scipy*}
 \end{enumerate}
+
+\subsubsection{If not using Anaconda}
+
+I found that for some things (e.g. compiled code) Anaconda does not behave properly. If you switch back to the normal Python, you will need to get the binaries of the packages in \url{http://www.lfd.uci.edu/~gohlke/pythonlibs/}. Then use the command line and go to the forder where the binaries are and type:
+
+\begin{verbatim}
+$PYTHON_PATH$\Scripts\pip.exe install <name_of_the_binary>
+\end{verbatim}
+where we assume that the installation of Python is in the folder \path{$PYTHON_PATH$}. Even in a 64-bit system I recommend the use of the 32-bit Python interpreter in case of compiled code. In this case, you will need the win32 version of the wheel files in the website given above.
 
 \subsection{Running a test of the C software}
 
