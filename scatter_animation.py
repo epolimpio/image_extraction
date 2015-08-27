@@ -8,6 +8,7 @@ import matplotlib.animation as animation
 import re
 from math import *
 from track_utils import TrackingAnalysis
+from os.path import join
 
 def update_scatter(num, track, points, line, frame_ini, mov):
     print('frame->'+str(num))
@@ -36,7 +37,9 @@ def main(*args):
     min_frames = 5
 
     # Define filenames
-    folder = "D:\\image_software\\results\\GMEMtracking3D_"+date
+    ini_config = readConfigFile(join('ini_files', 'ini_config.ini'))
+    results_folder = ini_config['results_folder']
+    folder =  join(results_folder,"GMEMtracking3D_" + date)
 
     # read positions and apply filter
     track = TrackingAnalysis(folder)

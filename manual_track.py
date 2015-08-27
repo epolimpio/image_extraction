@@ -3,8 +3,9 @@ import tkinter as tk
 import numpy as np
 import lxml.etree as etree
 from PIL import ImageTk, Image
-from track_utils import corrTIFPath, TrackingAnalysis, ensure_dir
+from track_utils import corrTIFPath, TrackingAnalysis, ensure_dir, readConfigFile
 import os.path
+from os.path import join
 
 class ManualTrackWindow(object):
 
@@ -20,7 +21,7 @@ class ManualTrackWindow(object):
         self.track_num = None
         self.track = track
         self.tracking = False
-        self.path = track.folder + "\\eye_check\\T?????\\Z@@@.png"
+        self.path = join(track.folder,"eye_check","T?????","Z@@@.png")
         
         # parent window parameters
         self.parent = parent
@@ -223,9 +224,9 @@ class ManualTrackWindow(object):
             ("No info", "None"),
         ]
         self.radio_related_path = {
-            "All": "\\eye_check\\T?????\\Z@@@.png",
-            "SV": "\\eye_check\\T?????_allSV\\Z@@@.png",
-            "None": "\\eye_check\\T?????_stackOnly\\Z@@@.png",
+            "All": ["eye_check","T?????","Z@@@.png"],
+            "SV": ["eye_check","T?????_allSV","Z@@@.png"],
+            "None": ["eye_check","T?????_stackOnly","Z@@@.png"],
         }
 
         self.radio_frame_str = tk.StringVar()
@@ -684,7 +685,7 @@ class ManualTrackWindow(object):
         Return the id of the written track
         """   
         if self.current_manualtrack:
-            filename = self.track.folder + "\\manual_track_config\\manual_track.xml"
+            filename = join(self.track.folder,"manual_track_config","manual_track.xml")
             ensure_dir(filename)
             if os.path.isfile(filename):
                 tree = etree.parse(filename)
@@ -726,7 +727,7 @@ class ManualTrackWindow(object):
         Read XML file with all the manual tracks
         Returns a dictionary with all the data
         """  
-        filename = self.track.folder + "\\manual_track_config\\manual_track.xml"
+        filename = join(self.track.folder, "manual_track_config","manual_track.xml")
         out = {}
         
         # Test if there is calibration
@@ -992,7 +993,7 @@ class ManualTrackWindow(object):
         Choose which image will be shown
         """
         path_key = self.radio_frame_str.get()
-        self.path = self.track.folder + self.radio_related_path[path_key]
+        self.path = join(self.track.folder,*self.radio_related_path[path_key])
         self.__changeImageOnCanvas(self.z, self.t)        
 
     def writeCalibrationFile(self):
@@ -1000,7 +1001,7 @@ class ManualTrackWindow(object):
         Write the current calibration to a file for further use
         """
         if self.calibration_image_coord and (len(self.calibration_coords)==3):
-            filename = self.track.folder + "\\manual_track_config\\calibration.conf"
+            filename = join(self.track.folder,"manual_track_config","calibration.conf")
             ensure_dir(filename)
             f = open(filename, 'w')
             f.write('# Pixel Coordinates:\n')
@@ -1017,7 +1018,7 @@ class ManualTrackWindow(object):
         """
         Read the calibration file previously saved
         """
-        filename = self.track.folder + "\\manual_track_config\\calibration.conf"
+        filename = join(self.track.folder + "manual_track_config","calibration.conf")
         if os.path.isfile(filename):
             try: # in case the file was corrupted
                 f = open(filename, 'r')
@@ -1264,8 +1265,11 @@ def main(*args):
     else:   
         date = input("Results date string:")
 
-    folder = "D:\\image_software\\results\\GMEMtracking3D_" + date
-    if os.path.exists(folder+"\\eye_check"):
+    ini_config = readConfigFile(join('ini_files', 'ini_config.ini'))
+    results_folder = ini_config['results_folder']
+
+    folder = join(results_folder ,"GMEMtracking3D_" + date)
+    if os.path.exists(join(folder,"eye_check")):
         root = tk.Tk()
         track = TrackingAnalysis(folder)
         window = ManualTrackWindow(root, track)

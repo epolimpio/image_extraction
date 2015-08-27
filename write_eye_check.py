@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from track_utils import *
+from os.path import join
 
 def correct_path(path_in, t, z):
 
@@ -26,9 +27,9 @@ def writeEyeCheck(frame_ini, frame_end, track):
     t_ini = track.configs[track.TIME_INI_KEY]
 
     # output files pattern
-    image_out_path = track.folder + "\\eye_check\\T?????\\Z@@@.png"
-    image_out_path_SV = track.folder + "\\eye_check\\T?????_allSV\\Z@@@.png"
-    image_out_path_Stack = track.folder + "\\eye_check\\T?????_stackOnly\\Z@@@.png"
+    image_out_path = join(track.folder, "eye_check", "T?????", "Z@@@.png")
+    image_out_path_SV = join(track.folder, "eye_check", "T?????_allSV", "Z@@@.png")
+    image_out_path_Stack = join(track.folder, "eye_check", "T?????_stackOnly", "Z@@@.png")
 
     for time_to_analyze in range(frame_ini, frame_end+1, 1):
 
@@ -143,8 +144,9 @@ def main(*args):
         if (args[3].lower() == 'false') or (str(args[3]) == '0'):
             back = False
 
-
-    folder = "D:\\image_software\\results\\GMEMtracking3D_"+date
+    ini_config = readConfigFile(join('ini_files', 'ini_config.ini'))
+    results_folder = ini_config['results_folder']
+    folder =  join(results_folder,"GMEMtracking3D_" + date)
 
     track = TrackingAnalysis(folder, back)
 

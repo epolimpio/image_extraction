@@ -10,6 +10,7 @@ import tifffile as tff
 import lxml.etree as etree
 import struct
 import os
+from os.path import join
 
 def readConfigFile(path):
     """
@@ -261,17 +262,17 @@ class TrackingAnalysis(object):
         # Folders
         self.folder = folder.strip('\\')
         log_path = self.getLogPath(folder)
-        mtrack_filename = self.folder + '\\manual_track_config\\manual_track.xml'
+        mtrack_filename = join(join(self.folder,'manual_track_config'),'manual_track.xml')
         if background_detector:
-            xml_path = self.folder + '\\XML_finalResult_lht_bckgRm\\GMEMfinalResult_frame????.xml'
+            xml_path = join(join(self.folder,'XML_finalResult_lht_bckgRm'),'GMEMfinalResult_frame????.xml')
         else:
-            xml_path = self.folder + '\\XML_finalResult_lht\\GMEMfinalResult_frame????.xml'
+            xml_path = join(join(self.folder,'XML_finalResult_lht'),'GMEMfinalResult_frame????.xml')
 
         # Configurations of the run
         self.configs = readLogAmat(log_path)
         self.configs[self.XML_PATH_KEY] = xml_path
         self.configs[self.LOG_PATH_KEY] = log_path
-        self.configs[self.BINATY_PATH_KEY] = self.folder + '\\XML_finalResult_lht\\GMEMfinalResult_frame????.svb'
+        self.configs[self.BINATY_PATH_KEY] = join(join(self.folder,'XML_finalResult_lht'),'GMEMfinalResult_frame????.svb')
         time_ini = self.configs[self.TIME_INI_KEY]
         time_end = self.configs[self.TIME_END_KEY]
         self.n_frames = time_end - time_ini + 1
@@ -290,10 +291,10 @@ class TrackingAnalysis(object):
         """ 
         Get the path of the log file inside the results folder
         """
-        path = self.folder + '\\experimentLog_0001.txt'
+        path = join(self.folder,'experimentLog_0001.txt')
         for f_path in os.listdir(folder):
             if re.search('experimentLog_[0-9]*.txt', f_path):
-                path = self.folder + '\\' + f_path
+                path = join(self.folder,f_path)
                 break
 
         return path

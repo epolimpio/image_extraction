@@ -6,6 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import re
 from math import *
 from track_utils import TrackingAnalysis
+from os.path import join
 
 def get_cmap(N):
     '''Returns a function that maps each index in 0, 1, ... N-1 to a distinct 
@@ -202,7 +203,9 @@ def main(*args):
         return None
 
     # Define filenames
-    folder = "D:\\image_software\\results\\GMEMtracking3D_"+date
+    ini_config = readConfigFile(join('ini_files', 'ini_config.ini'))
+    results_folder = ini_config['results_folder']
+    folder =  join(results_folder,"GMEMtracking3D_" + date)
 
     # read positions and apply filter
     track = TrackingAnalysis(folder)

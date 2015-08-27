@@ -8,6 +8,7 @@ import lxml.etree as etree
 import struct
 import os
 from track_utils import *
+from os.path import join
 
 def calcAllPixelsAddress(pixIDList, dimX, dimY):
 
@@ -81,8 +82,11 @@ def main(*args):
         print('Call must be: py plot_all_supervoxels.py <time> <results_date>')
         return None
 
-    folder = "D:\\image_software\\results\\GMEMtracking3D_"+date
-    image_out_path = folder + "\\eye_check\\T?????_allSV\\Z@@@.png"
+    ini_config = readConfigFile(join('ini_files', 'ini_config.ini'))
+    results_folder = ini_config['results_folder']
+    folder =  join(results_folder,"GMEMtracking3D_" + date)
+
+    image_out_path = join(folder,"eye_check","T?????_allSV","Z@@@.png")
 
     track = TrackingAnalysis(folder)
 
