@@ -38,7 +38,7 @@ def main(*args):
     # Type of the file
     sType = 'uint16'
 
-    config_path = 'config_generate_stacked_images.conf'
+    config_path = 'config_stacked_images.conf'
     if len(args) >= 1:
         config_path = str(args[0]).strip('"')
     else:
