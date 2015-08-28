@@ -45,7 +45,7 @@ def plotManualTracks(track, frame_ini, frame_end):
     t_ini = track.configs[track.TIME_INI_KEY]
     anisotropy = track.configs[track.ANISOTROPY_KEY]
 
-    cartesian = True
+    cartesian = False
     annotate = False
     center_of_mass = np.asarray(track.getCenterOfMass())
     frames = np.arange(center_of_mass.shape[1])
